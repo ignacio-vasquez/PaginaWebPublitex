@@ -32,6 +32,14 @@
 - Comando: `npm test`
 - Salida: 3 pruebas, 3 PASS, 0 FAIL.
 
+## Corrección round 3/5
+
+- Cambio: se corrigieron las listas `Files` del plan por encabezado: Task 3 contiene solo sus dos archivos modificados y Task 4 contiene esos dos archivos más los tres SVG; Task 2 permanece sin `Create`.
+- Se inspeccionaron las tres listas antes del commit y se regeneró `task-2-brief.md` desde el plan corregido.
+- Prueba adicional: se verificó que los tres SVG permanecen ausentes.
+- Comando: `npm test`
+- Salida: 3 pruebas, 3 PASS, 0 FAIL.
+
 ## Corrección round 2/5
 
 - Cambio: se retiraron los tres `Create: assets/...` de Task 2 en `docs/superpowers/plans/2026-08-29-sitio-publico-html.md` y se agregaron a la lista `Files` de Task 4.
