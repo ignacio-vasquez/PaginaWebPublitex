@@ -1,0 +1,70 @@
+:root {
+  --color-ink: #101c28;
+  --color-ink-soft: #1c2b38;
+  --color-accent: #f36b21;
+  --color-accent-dark: #c94d0c;
+  --color-surface: #ffffff;
+  --color-surface-soft: #f2f5f7;
+  --color-text: #17212b;
+  --color-muted: #5b6874;
+  --color-border: #d9e0e5;
+  --shadow-card: 0 1rem 2.5rem rgb(16 28 40 / 0.1);
+  --radius-small: 0.5rem;
+  --radius-large: 1rem;
+  --content-width: 72rem;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-size: 1rem;
+  line-height: 1.6;
+}
+
+img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+
+a {
+  color: inherit;
+  text-decoration-thickness: 0.12em;
+  text-underline-offset: 0.2em;
+}
+
+h1,
+h2,
+h3,
+p,
+figure {
+  margin-top: 0;
+}
+
+h1,
+h2,
+h3 {
+  line-height: 1.15;
+}
+
+main > section,
+body > header,
+body > footer {
+  padding-inline: max(1rem, calc((100% - var(--content-width)) / 2));
+}
+
+main > section {
+  padding-block: clamp(3.5rem, 8vw, 6.5rem);
+}
