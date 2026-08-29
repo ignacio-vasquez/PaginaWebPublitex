@@ -87,3 +87,18 @@ test('incluye contacto y navegación complementaria en el pie', () => {
   assert.match(html, /Datos definitivos pendientes/i);
   assert.match(html, /<footer>[\s\S]*href="#inicio"/i);
 });
+
+test('usa identificadores únicos y un solo título principal', () => {
+  const html = loadHomepage();
+  const ids = [...html.matchAll(/\bid="([^"]+)"/gi)].map((match) => match[1]);
+
+  assert.equal(new Set(ids).size, ids.length);
+  assert.equal((html.match(/<h1\b/gi) || []).length, 1);
+});
+
+test('no incorpora tecnologías reservadas para etapas posteriores', () => {
+  const html = loadHomepage();
+
+  assert.doesNotMatch(html, /<style\b|<script\b|style="/i);
+  assert.equal(html.includes('{{'), false);
+});
