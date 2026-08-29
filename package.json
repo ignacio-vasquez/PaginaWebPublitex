@@ -1,0 +1,9 @@
+{
+  "name": "publitexweb",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Sitio y sistema de gestión para una empresa de publicidad visual",
+  "scripts": {
+    "test": "node --test"
+  }
+}
