@@ -14,6 +14,7 @@
 
 - Esta etapa usa HTML semántico; no incorpora CSS, JavaScript del navegador, Express, Oracle ni React.
 - La identidad es provisional hasta disponer del nombre, logotipo, colores y fotografías reales de la empresa.
+- Hasta disponer de fotografías reales, la etapa HTML usa `assets/trabajo-letrero.svg`, `assets/trabajo-camion.svg` y `assets/trabajo-vitrina.svg` como imágenes provisionales en la presentación principal, los servicios y el portafolio.
 - El sitio público debe incluir inicio, servicios, trabajos, empresa, contacto y solicitud de cotización.
 - Los visitantes no necesitan una cuenta.
 - La interfaz debe poder evolucionar sin cambiar la arquitectura aprobada.

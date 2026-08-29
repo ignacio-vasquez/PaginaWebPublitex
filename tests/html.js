@@ -1,4 +1,4 @@
-const { readFileSync } = require('node:fs');
+const { existsSync, readFileSync } = require('node:fs');
 const { join } = require('node:path');
 
 function loadHomepage() {
@@ -10,4 +10,8 @@ function hasElement(html, tag, attributes = '') {
   return expression.test(html);
 }
 
-module.exports = { loadHomepage, hasElement };
+function assetExists(relativePath) {
+  return existsSync(join(__dirname, '..', relativePath));
+}
+
+module.exports = { loadHomepage, hasElement, assetExists };

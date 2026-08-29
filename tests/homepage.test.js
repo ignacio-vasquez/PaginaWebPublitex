@@ -1,6 +1,6 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { loadHomepage, hasElement } = require('./html');
+const { loadHomepage, hasElement, assetExists } = require('./html');
 
 test('define un documento HTML en español con estructura semántica', () => {
   const html = loadHomepage();
@@ -12,6 +12,7 @@ test('define un documento HTML en español con estructura semántica', () => {
   assert.equal(hasElement(html, 'main'), true);
   assert.equal(hasElement(html, 'footer'), true);
   assert.match(html, /<title>[^<]+<\/title>/i);
+  assert.match(html, /<a\b[^>]*href="#inicio"[^>]*aria-label="Publitexweb, ir al inicio"/i);
 });
 
 test('ofrece navegación interna hacia todas las secciones públicas', () => {
@@ -53,10 +54,33 @@ test('explica el proceso mediante una lista ordenada', () => {
 
 test('incluye un portafolio preparado para fotografías reales', () => {
   const html = loadHomepage();
+  const portfolio = html.match(/<section\b[^>]*id="trabajos"[^>]*>[\s\S]*?<\/section>/i)?.[0] ?? '';
 
   assert.equal(hasElement(html, 'section', 'id="trabajos"'), true);
-  assert.equal((html.match(/<figure\b/gi) || []).length, 3);
-  assert.equal((html.match(/<img\b[^>]*alt="[^"]+"/gi) || []).length, 3);
+  assert.equal((portfolio.match(/<figure\b/gi) || []).length, 3);
+  assert.equal((portfolio.match(/<img\b[^>]*alt="Imagen provisional de [^"]+"/gi) || []).length, 3);
+});
+
+test('usa los medios provisionales accesibles en la presentación y los servicios', () => {
+  const html = loadHomepage();
+  const hero = html.match(/<section\b[^>]*aria-labelledby="titulo-principal"[^>]*>[\s\S]*?<\/section>/i)?.[0] ?? '';
+  const services = html.match(/<section\b[^>]*id="servicios"[^>]*>[\s\S]*?<\/section>/i)?.[0] ?? '';
+  const articles = services.match(/<article\b[^>]*>[\s\S]*?<\/article>/gi) || [];
+  const assetPaths = [
+    'assets/trabajo-letrero.svg',
+    'assets/trabajo-camion.svg',
+    'assets/trabajo-vitrina.svg'
+  ];
+
+  assert.match(hero, /<img\b[^>]*src="assets\/trabajo-letrero\.svg"[^>]*alt="[^"]+"/i);
+  assert.equal(articles.length, 3);
+  for (const [index, assetPath] of assetPaths.entries()) {
+    const expectedSource = assetPath.replace('.', '\\.');
+
+    assert.match(articles[index], new RegExp(`<img\\b[^>]*src="${expectedSource}"[^>]*alt="[^"]+"`, 'i'));
+    assert.match(html, new RegExp(`src="${expectedSource}"`, 'i'));
+    assert.equal(assetExists(assetPath), true);
+  }
 });
 
 test('presenta a la empresa sin inventar cifras ni certificaciones', () => {

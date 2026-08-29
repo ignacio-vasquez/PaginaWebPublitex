@@ -6,6 +6,10 @@ Proyecto progresivo para una empresa de publicidad visual y para practicar desar
 
 Esta versión contiene solo la estructura y el contenido semántico. Todavía no incluye estilos ni comportamiento dinámico.
 
+## Prerrequisitos
+
+Node.js 22 o superior.
+
 ## Ver la página
 
 Abre `index.html` en un navegador web.
