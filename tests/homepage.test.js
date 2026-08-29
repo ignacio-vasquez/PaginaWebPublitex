@@ -31,3 +31,22 @@ test('presenta el servicio y dos acciones principales', () => {
   assert.match(html, /href="#cotizacion"[^>]*>\s*Solicitar cotización/i);
   assert.match(html, /href="#trabajos"[^>]*>\s*Ver nuestros trabajos/i);
 });
+
+test('describe los tres servicios principales en artículos', () => {
+  const html = loadHomepage();
+  const services = ['Letreros luminosos', 'Rotulación vehicular', 'Adhesivos y gráficas'];
+
+  assert.equal(hasElement(html, 'section', 'id="servicios"'), true);
+  assert.equal((html.match(/<article\b/gi) || []).length >= 3, true);
+  for (const service of services) assert.match(html, new RegExp(service, 'i'));
+});
+
+test('explica el proceso mediante una lista ordenada', () => {
+  const html = loadHomepage();
+
+  assert.equal(hasElement(html, 'section', 'id="proceso"'), true);
+  assert.equal(hasElement(html, 'ol'), true);
+  for (const step of ['Idea y medidas', 'Diseño', 'Fabricación', 'Instalación']) {
+    assert.match(html, new RegExp(step, 'i'));
+  }
+});
