@@ -14,3 +14,13 @@ test('enlaza la hoja local y define el sistema visual provisional', () => {
   assert.match(css, /box-sizing:\s*border-box/i);
   assert.match(css, /font-family:\s*system-ui/i);
 });
+
+test('diseña un encabezado sticky y una presentación adaptable', () => {
+  const css = loadStylesheet();
+
+  assert.match(css, /body\s*>\s*header\s*\{[^}]*position:\s*sticky/is);
+  assert.match(css, /body\s*>\s*header\s*\{[^}]*display:\s*flex/is);
+  assert.match(css, /main\s*>\s*section:first-child\s*\{/i);
+  assert.match(css, /main\s*>\s*section:first-child[\s\S]*grid-template-columns:/i);
+  assert.match(css, /background:\s*var\(--color-accent\)/i);
+});
