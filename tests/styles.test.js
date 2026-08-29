@@ -42,7 +42,7 @@ test('incluye formulario, responsive y preferencias de accesibilidad', () => {
 
   assert.match(css, /#cotizacion\s+form\s*\{/i);
   assert.match(css, /input,\s*select,\s*textarea\s*\{/i);
-  assert.match(css, /:focus-visible/i);
+  assert.match(css, /:focus-visible\s*\{[^}]*outline:\s*0\.2rem solid var\(--color-accent-dark\)/is);
   assert.match(css, /@media\s*\(min-width:\s*48rem\)/i);
   assert.match(css, /@media\s*\(prefers-reduced-motion:\s*reduce\)/i);
   assert.doesNotMatch(css, /@import|bootstrap|tailwind/i);

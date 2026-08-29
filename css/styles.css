@@ -421,7 +421,7 @@ form button:hover {
 }
 
 :focus-visible {
-  outline: 0.2rem solid #ffb27f;
+  outline: 0.2rem solid var(--color-accent-dark);
   outline-offset: 0.2rem;
 }
 
