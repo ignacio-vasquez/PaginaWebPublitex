@@ -36,3 +36,14 @@ test('organiza servicios, proceso y portafolio como componentes visuales', () =>
   assert.match(css, /#trabajos\s+figure\s*\{/i);
   assert.match(css, /object-fit:\s*cover/i);
 });
+
+test('incluye formulario, responsive y preferencias de accesibilidad', () => {
+  const css = loadStylesheet();
+
+  assert.match(css, /#cotizacion\s+form\s*\{/i);
+  assert.match(css, /input,\s*select,\s*textarea\s*\{/i);
+  assert.match(css, /:focus-visible/i);
+  assert.match(css, /@media\s*\(min-width:\s*48rem\)/i);
+  assert.match(css, /@media\s*\(prefers-reduced-motion:\s*reduce\)/i);
+  assert.doesNotMatch(css, /@import|bootstrap|tailwind/i);
+});
