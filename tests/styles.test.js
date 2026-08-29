@@ -24,3 +24,15 @@ test('diseña un encabezado sticky y una presentación adaptable', () => {
   assert.match(css, /main\s*>\s*section:first-child[\s\S]*grid-template-columns:/i);
   assert.match(css, /background:\s*var\(--color-accent\)/i);
 });
+
+test('organiza servicios, proceso y portafolio como componentes visuales', () => {
+  const css = loadStylesheet();
+
+  for (const selector of ['#servicios', '#proceso', '#trabajos', '#empresa']) {
+    assert.match(css, new RegExp(`${selector.replace('#', '\\#')}\\s*\\{`));
+  }
+  assert.match(css, /#servicios\s+article\s*\{/i);
+  assert.match(css, /#proceso\s+ol\s*\{[^}]*counter-reset:/is);
+  assert.match(css, /#trabajos\s+figure\s*\{/i);
+  assert.match(css, /object-fit:\s*cover/i);
+});
