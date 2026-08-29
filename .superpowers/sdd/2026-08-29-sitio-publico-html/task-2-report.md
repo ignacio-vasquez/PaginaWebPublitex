@@ -5,7 +5,6 @@
 - Se amplió el `header` con navegación semántica (`nav`, `ul`, `li`) hacia `#inicio`, `#servicios`, `#trabajos`, `#empresa` y `#contacto`.
 - Se agregó el acceso global `Cotizar proyecto` hacia `#cotizacion`.
 - Se incorporó la presentación principal dentro de una sección accesible, con propuesta de valor, descripción del servicio y las acciones `Solicitar cotización` y `Ver nuestros trabajos`.
-- Se crearon las tres imágenes SVG provisionales accesibles indicadas por el brief en `assets/`.
 
 ## TDD y pruebas
 
@@ -15,7 +14,7 @@
 ## Archivos
 
 - Modificados: `index.html`, `tests/homepage.test.js`.
-- Creados: `assets/trabajo-letrero.svg`, `assets/trabajo-camion.svg`, `assets/trabajo-vitrina.svg`.
+- No se crean assets en esta tarea; esos archivos pertenecen a la tarea propietaria de portafolio.
 
 ## Auto-revisión
 
@@ -25,4 +24,10 @@
 
 ## Preocupaciones
 
-- Los SVG son placeholders y deberán sustituirse por fotografías o recursos finales cuando se implemente el portafolio.
+
+## Corrección round 1/5
+
+- Cambio: eliminados únicamente `assets/trabajo-letrero.svg`, `assets/trabajo-camion.svg` y `assets/trabajo-vitrina.svg`, porque su creación corresponde a Task 4.
+- Prueba cubriente: la navegación y presentación permanecen en `index.html`; `tests/homepage.test.js` valida sus tres comportamientos.
+- Comando: `npm test`
+- Salida: 3 pruebas, 3 PASS, 0 FAIL.
