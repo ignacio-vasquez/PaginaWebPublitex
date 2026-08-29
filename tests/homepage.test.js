@@ -66,3 +66,24 @@ test('presenta a la empresa sin inventar cifras ni certificaciones', () => {
   assert.match(html, /diseño, fabricación e instalación/i);
   assert.doesNotMatch(html, /años de experiencia|clientes satisfechos|certificad[oa]/i);
 });
+
+test('solicita los datos mínimos para preparar una cotización', () => {
+  const html = loadHomepage();
+  const fields = ['nombre', 'empresa-cliente', 'telefono', 'correo', 'servicio', 'descripcion'];
+
+  assert.equal(hasElement(html, 'section', 'id="cotizacion"'), true);
+  assert.equal(hasElement(html, 'form', 'method="post"'), true);
+  for (const field of fields) {
+    assert.match(html, new RegExp(`(?:id|name)="${field}"`, 'i'));
+    assert.match(html, new RegExp(`for="${field}"`, 'i'));
+  }
+  assert.equal((html.match(/\brequired\b/gi) || []).length >= 5, true);
+});
+
+test('incluye contacto y navegación complementaria en el pie', () => {
+  const html = loadHomepage();
+
+  assert.equal(hasElement(html, 'section', 'id="contacto"'), true);
+  assert.match(html, /Datos definitivos pendientes/i);
+  assert.match(html, /<footer>[\s\S]*href="#inicio"/i);
+});

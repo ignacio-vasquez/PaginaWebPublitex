@@ -81,10 +81,46 @@
         <h2 id="titulo-empresa">Del diseño a la instalación</h2>
         <p>Desarrollamos soluciones de publicidad visual adaptadas a las medidas, materiales y necesidades de cada proyecto.</p>
       </section>
+
+      <section id="cotizacion" aria-labelledby="titulo-cotizacion">
+        <h2 id="titulo-cotizacion">Cuéntanos sobre tu proyecto</h2>
+        <p>Indica qué necesitas. La empresa revisará la información antes de contactarte.</p>
+        <form action="#" method="post">
+          <p><label for="nombre">Nombre</label><input id="nombre" name="nombre" autocomplete="name" required></p>
+          <p><label for="empresa-cliente">Empresa</label><input id="empresa-cliente" name="empresa-cliente" autocomplete="organization"></p>
+          <p><label for="telefono">Teléfono</label><input id="telefono" name="telefono" type="tel" autocomplete="tel" required></p>
+          <p><label for="correo">Correo</label><input id="correo" name="correo" type="email" autocomplete="email" required></p>
+          <p>
+            <label for="servicio">Tipo de trabajo</label>
+            <select id="servicio" name="servicio" required>
+              <option value="">Selecciona una opción</option>
+              <option value="letrero">Letrero luminoso</option>
+              <option value="vehiculo">Rotulación vehicular</option>
+              <option value="adhesivo">Adhesivos y gráficas</option>
+              <option value="otro">Otro</option>
+            </select>
+          </p>
+          <p><label for="descripcion">Descripción, medidas y ubicación</label><textarea id="descripcion" name="descripcion" rows="6" required></textarea></p>
+          <p><label><input name="consentimiento" type="checkbox" required> Autorizo el uso de estos datos para responder mi solicitud.</label></p>
+          <button type="submit">Enviar solicitud</button>
+        </form>
+      </section>
+
+      <section id="contacto" aria-labelledby="titulo-contacto">
+        <h2 id="titulo-contacto">Contacto</h2>
+        <p>Datos definitivos pendientes de confirmar con la empresa.</p>
+      </section>
     </main>
 
     <footer>
-      <p><small>Publitexweb — Publicidad visual</small></p>
+      <p><strong>Publitexweb</strong> — Publicidad visual</p>
+      <nav aria-label="Navegación complementaria">
+        <a href="#inicio">Volver al inicio</a>
+        <a href="#servicios">Servicios</a>
+        <a href="#trabajos">Trabajos</a>
+        <a href="#contacto">Contacto</a>
+      </nav>
+      <p><small>Identidad y datos comerciales provisionales.</small></p>
     </footer>
   </body>
 </html>
