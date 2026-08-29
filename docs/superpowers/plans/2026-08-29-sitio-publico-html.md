@@ -150,9 +150,6 @@ git commit -m "feat: add semantic HTML document shell"
 **Files:**
 - Modify: `tests/homepage.test.js`
 - Modify: `index.html`
-- Create: `assets/trabajo-letrero.svg`
-- Create: `assets/trabajo-camion.svg`
-- Create: `assets/trabajo-vitrina.svg`
 
 **Interfaces:**
 - Consumes: `loadHomepage()` y `hasElement()` de `tests/html.js`; ancla `#inicio` de Task 1.
@@ -244,6 +241,9 @@ git commit -m "feat: add public navigation and hero content"
 **Files:**
 - Modify: `tests/homepage.test.js`
 - Modify: `index.html`
+- Create: `assets/trabajo-letrero.svg`
+- Create: `assets/trabajo-camion.svg`
+- Create: `assets/trabajo-vitrina.svg`
 
 **Interfaces:**
 - Consumes: navegación a `#servicios` creada en Task 2.

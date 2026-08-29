@@ -31,3 +31,11 @@
 - Prueba cubriente: la navegación y presentación permanecen en `index.html`; `tests/homepage.test.js` valida sus tres comportamientos.
 - Comando: `npm test`
 - Salida: 3 pruebas, 3 PASS, 0 FAIL.
+
+## Corrección round 2/5
+
+- Cambio: se retiraron los tres `Create: assets/...` de Task 2 en `docs/superpowers/plans/2026-08-29-sitio-publico-html.md` y se agregaron a la lista `Files` de Task 4.
+- Brief: regenerado desde el plan corregido con `task-brief` y tercer argumento explícito en `.superpowers/sdd/2026-08-29-sitio-publico-html/task-2-brief.md`.
+- Prueba cubriente: `tests/homepage.test.js` continúa validando navegación y presentación; los SVG permanecen ausentes.
+- Comando: `npm test`
+- Salida: 3 pruebas, 3 PASS, 0 FAIL.
