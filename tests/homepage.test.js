@@ -50,3 +50,19 @@ test('explica el proceso mediante una lista ordenada', () => {
     assert.match(html, new RegExp(step, 'i'));
   }
 });
+
+test('incluye un portafolio preparado para fotografías reales', () => {
+  const html = loadHomepage();
+
+  assert.equal(hasElement(html, 'section', 'id="trabajos"'), true);
+  assert.equal((html.match(/<figure\b/gi) || []).length, 3);
+  assert.equal((html.match(/<img\b[^>]*alt="[^"]+"/gi) || []).length, 3);
+});
+
+test('presenta a la empresa sin inventar cifras ni certificaciones', () => {
+  const html = loadHomepage();
+
+  assert.equal(hasElement(html, 'section', 'id="empresa"'), true);
+  assert.match(html, /diseño, fabricación e instalación/i);
+  assert.doesNotMatch(html, /años de experiencia|clientes satisfechos|certificad[oa]/i);
+});
