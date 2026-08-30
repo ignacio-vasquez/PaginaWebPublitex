@@ -109,13 +109,18 @@ export function initQuoteForm(documentRoot) {
   const form = documentRoot.querySelector('form[data-quote-form]');
   if (!form) return;
 
+  const fields = Object.fromEntries(fieldNames.map((name) => [name, form.elements.namedItem(name)]));
   const status = form.querySelector('[data-form-status]');
   const summary = documentRoot.querySelector('[data-quote-summary]');
   const summaryList = summary?.querySelector('[data-summary-list]');
-  const firstField = form.elements.namedItem(fieldNames[0]);
+
+  if (Object.values(fields).some((field) => !field || typeof field.addEventListener !== 'function')
+    || !status || !summary || !summaryList) return;
+
+  const firstField = fields.nombre;
 
   for (const name of fieldNames) {
-    const field = form.elements.namedItem(name);
+    const field = fields[name];
     field.addEventListener(field.type === 'checkbox' ? 'change' : 'input', () => updateFieldError(form, field));
   }
 
@@ -126,7 +131,7 @@ export function initQuoteForm(documentRoot) {
     const invalidFields = [];
 
     for (const name of fieldNames) {
-      const field = form.elements.namedItem(name);
+      const field = fields[name];
       if (errors[name]) {
         setFieldError(field, errors[name]);
         invalidFields.push(field);
@@ -147,13 +152,13 @@ export function initQuoteForm(documentRoot) {
     summary.hidden = false;
   });
 
-  summary?.querySelector('[data-edit-quote]')?.addEventListener('click', () => {
+  summary.querySelector('[data-edit-quote]')?.addEventListener('click', () => {
     summary.hidden = true;
     form.hidden = false;
     firstField.focus();
   });
 
-  summary?.querySelector('[data-clear-quote]')?.addEventListener('click', () => {
+  summary.querySelector('[data-clear-quote]')?.addEventListener('click', () => {
     form.reset();
     clearFormErrors(form);
     status.hidden = true;

@@ -92,6 +92,25 @@ test('la validación exige veinte caracteres visibles en la descripción', async
   assert.ok(validateQuote({ descripcion: '1234567890123456789' }).descripcion);
 });
 
+test('la inicialización ignora formularios con un contrato incompleto', async () => {
+  const { initQuoteForm } = await import('../js/formulario.js');
+
+  for (const selector of [
+    '[name="telefono"]',
+    '[data-form-status]',
+    '[data-quote-summary]',
+    '[data-summary-list]',
+  ]) {
+    const dom = createQuoteDom();
+    const documentRoot = dom.window.document;
+    const form = documentRoot.querySelector('[data-quote-form]');
+    documentRoot.querySelector(selector).remove();
+
+    assert.doesNotThrow(() => initQuoteForm(documentRoot));
+    assert.equal(submit(form, dom.window).defaultPrevented, false);
+  }
+});
+
 test('el envío inválido se cancela, explica los campos y enfoca el primero', async () => {
   const dom = createQuoteDom();
   const { initQuoteForm } = await import('../js/formulario.js');

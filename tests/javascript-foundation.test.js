@@ -16,3 +16,14 @@ test('la aplicación coordina módulos de responsabilidades separadas', () => {
     assert.match(source, new RegExp(`from ['"]\\./${moduleName}\\.js['"]`));
   }
 });
+
+test('el formulario no referencia APIs de red ni almacenamiento', () => {
+  const formSource = readFileSync(join(__dirname, '..', 'js', 'formulario.js'), 'utf8');
+  const messageSource = readFileSync(join(__dirname, '..', 'js', 'mensajes.js'), 'utf8');
+  const quoteForm = loadHomepage().match(/<form\b[^>]*data-quote-form[^>]*>[\s\S]*?<\/form>/i)?.[0] ?? '';
+
+  for (const source of [formSource, messageSource]) {
+    assert.doesNotMatch(source, /\bfetch\b|\bXMLHttpRequest\b|\bsendBeacon\b|\blocalStorage\b|\bsessionStorage\b|\bindexedDB\b|document\.cookie/);
+  }
+  assert.match(quoteForm, /\baction="#"/i);
+});
