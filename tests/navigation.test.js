@@ -1,6 +1,21 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { createDom } = require('./dom');
+const { createDom, loadHomepageDom } = require('./dom');
+
+test('el HTML sin JavaScript muestra la navegación y oculta el botón móvil inactivo', async () => {
+  const dom = loadHomepageDom();
+  const { initMenu } = await import('../js/menu.js');
+  const button = dom.window.document.querySelector('#menu-button');
+  const navigation = dom.window.document.querySelector('#primary-navigation');
+
+  assert.equal(button.hidden, true);
+  assert.equal(navigation.hidden, false);
+
+  initMenu(dom.window.document);
+
+  assert.equal(button.hidden, false);
+  assert.equal(navigation.hidden, true);
+});
 
 test('el botón abre el menú y Escape lo cierra devolviendo el foco', async () => {
   const dom = createDom('<button id="menu-button" aria-expanded="false" aria-controls="primary-navigation">Menú</button><nav id="primary-navigation" hidden><a href="#servicios">Servicios</a></nav>');
@@ -23,6 +38,34 @@ test('elegir un enlace cierra el menú', async () => {
   initMenu(dom.window.document);
   dom.window.document.querySelector('a').click();
   assert.equal(dom.window.document.querySelector('button').getAttribute('aria-expanded'), 'false');
+});
+
+test('entrar al breakpoint de escritorio restablece el estado semántico del menú', async () => {
+  const dom = createDom('<button id="menu-button" aria-expanded="false" aria-controls="primary-navigation">Menú</button><nav id="primary-navigation"><a href="#servicios">Servicios</a></nav>');
+  const { initMenu } = await import('../js/menu.js');
+  const button = dom.window.document.querySelector('#menu-button');
+  const navigation = dom.window.document.querySelector('#primary-navigation');
+  let breakpointListener;
+  const originalMatchMedia = globalThis.matchMedia;
+  globalThis.matchMedia = () => ({
+    matches: false,
+    addEventListener(type, listener) {
+      if (type === 'change') breakpointListener = listener;
+    },
+  });
+
+  try {
+    initMenu(dom.window.document);
+    button.click();
+    assert.equal(button.getAttribute('aria-expanded'), 'true');
+
+    breakpointListener({ matches: true });
+
+    assert.equal(button.getAttribute('aria-expanded'), 'false');
+    assert.equal(navigation.hidden, false);
+  } finally {
+    globalThis.matchMedia = originalMatchMedia;
+  }
 });
 
 test('la sección visible marca únicamente su enlace de navegación', async () => {

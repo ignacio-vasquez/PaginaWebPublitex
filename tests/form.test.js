@@ -5,7 +5,8 @@ const { createDom } = require('./dom');
 function createQuoteDom() {
   return createDom(`
     <section>
-      <form action="#" method="post" data-quote-form novalidate>
+      <div data-quote-form role="form" aria-labelledby="quote-form-title">
+        <h2 id="quote-form-title">Cotización</h2>
         <p><label for="nombre">Nombre</label><input id="nombre" name="nombre"></p>
         <p><label for="telefono">Teléfono</label><input id="telefono" name="telefono"></p>
         <p><label for="correo">Correo</label><input id="correo" name="correo"></p>
@@ -13,9 +14,9 @@ function createQuoteDom() {
         <p><label for="descripcion">Descripción</label><textarea id="descripcion" name="descripcion"></textarea></p>
         <p><label><input id="consentimiento" name="consentimiento" type="checkbox"> Autorizo el uso de estos datos.</label></p>
         <div class="form-status" data-form-status role="status" aria-live="polite" hidden></div>
-        <button type="submit">Enviar solicitud</button>
-      </form>
-      <section class="quote-summary" data-quote-summary aria-labelledby="quote-summary-title" hidden>
+        <button type="button" data-submit-quote>Enviar solicitud</button>
+      </div>
+      <section class="quote-summary" data-quote-summary aria-labelledby="quote-summary-title" tabindex="-1" hidden>
         <h3 id="quote-summary-title">Resumen de tu solicitud</h3>
         <p><strong>Simulación: esta solicitud todavía no fue enviada a la empresa</strong></p>
         <dl data-summary-list></dl>
@@ -36,8 +37,8 @@ function fillValidQuote(documentRoot) {
 }
 
 function submit(form, window) {
-  const event = new window.Event('submit', { bubbles: true, cancelable: true });
-  form.dispatchEvent(event);
+  const event = new window.MouseEvent('click', { bubbles: true, cancelable: true });
+  form.querySelector('[data-submit-quote]').dispatchEvent(event);
   return event;
 }
 
@@ -98,6 +99,7 @@ test('la inicialización ignora formularios con un contrato incompleto', async (
   for (const selector of [
     '[name="telefono"]',
     '[data-form-status]',
+    '[data-submit-quote]',
     '[data-quote-summary]',
     '[data-summary-list]',
   ]) {
@@ -107,6 +109,7 @@ test('la inicialización ignora formularios con un contrato incompleto', async (
     documentRoot.querySelector(selector).remove();
 
     assert.doesNotThrow(() => initQuoteForm(documentRoot));
+    if (selector === '[data-submit-quote]') continue;
     assert.equal(submit(form, dom.window).defaultPrevented, false);
   }
 });
@@ -148,6 +151,20 @@ test('corregir un campo elimina su error asociado', async () => {
   assert.equal(documentRoot.querySelector('#nombre-error'), null);
 });
 
+test('validar mientras se escribe conserva un espacio separador recién ingresado', async () => {
+  const dom = createQuoteDom();
+  const { initQuoteForm } = await import('../js/formulario.js');
+  const name = dom.window.document.querySelector('[name="nombre"]');
+
+  initQuoteForm(dom.window.document);
+  for (const character of 'Ana ') {
+    name.value += character;
+    name.dispatchEvent(new dom.window.Event('input', { bubbles: true }));
+  }
+
+  assert.equal(name.value, 'Ana ');
+});
+
 test('el envío válido muestra un resumen de simulación sin enviar el formulario', async () => {
   const dom = createQuoteDom();
   const { initQuoteForm } = await import('../js/formulario.js');
@@ -164,6 +181,7 @@ test('el envío válido muestra un resumen de simulación sin enviar el formular
   assert.equal(summary.hidden, false);
   assert.equal(summary.querySelector('strong').textContent, 'Simulación: esta solicitud todavía no fue enviada a la empresa');
   assert.match(summary.querySelector('[data-summary-list]').textContent, /Ignacio/);
+  assert.equal(documentRoot.activeElement, summary);
   assert.equal(dom.window.localStorage.length, 0);
 });
 
@@ -188,19 +206,11 @@ test('Limpiar formulario restablece los campos y oculta el resumen', async () =>
   const { initQuoteForm } = await import('../js/formulario.js');
   const documentRoot = dom.window.document;
   const form = documentRoot.querySelector('[data-quote-form]');
-  const nativeReset = form.reset.bind(form);
-  let resetCalls = 0;
-  form.reset = () => {
-    resetCalls += 1;
-    nativeReset();
-  };
-
   initQuoteForm(documentRoot);
   fillValidQuote(documentRoot);
   submit(form, dom.window);
   documentRoot.querySelector('[data-clear-quote]').click();
 
-  assert.equal(resetCalls, 1);
   assert.equal(form.hidden, false);
   assert.equal(documentRoot.querySelector('[data-quote-summary]').hidden, true);
   assert.equal(documentRoot.querySelector('[name="nombre"]').value, '');

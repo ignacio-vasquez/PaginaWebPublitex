@@ -19,11 +19,13 @@ test('la aplicación coordina módulos de responsabilidades separadas', () => {
 
 test('los módulos JavaScript no referencian APIs de red ni almacenamiento', () => {
   const scriptsDirectory = join(__dirname, '..', 'js');
-  const quoteForm = loadHomepage().match(/<form\b[^>]*data-quote-form[^>]*>[\s\S]*?<\/form>/i)?.[0] ?? '';
+  const html = loadHomepage();
 
   for (const fileName of readdirSync(scriptsDirectory).filter((fileName) => fileName.endsWith('.js'))) {
     const source = readFileSync(join(scriptsDirectory, fileName), 'utf8');
     assert.doesNotMatch(source, /(fetch\s*\(|XMLHttpRequest|sendBeacon|localStorage|sessionStorage|indexedDB|document\.cookie)/);
   }
-  assert.match(quoteForm, /\baction="#"/i);
+  assert.doesNotMatch(html, /<form\b[^>]*data-quote-form/i);
+  assert.match(html, /<div\b[^>]*data-quote-form[^>]*role="form"/i);
+  assert.match(html, /<button\b[^>]*type="button"[^>]*data-submit-quote/i);
 });

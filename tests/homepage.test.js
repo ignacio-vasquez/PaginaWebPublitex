@@ -93,10 +93,13 @@ test('presenta a la empresa sin inventar cifras ni certificaciones', () => {
 
 test('solicita los datos mínimos para preparar una cotización', () => {
   const html = loadHomepage();
+  const quoteSection = html.match(/<section\b[^>]*id="cotizacion"[^>]*>[\s\S]*?<\/section>/i)?.[0] ?? '';
   const fields = ['nombre', 'empresa-cliente', 'telefono', 'correo', 'servicio', 'descripcion'];
 
   assert.equal(hasElement(html, 'section', 'id="cotizacion"'), true);
-  assert.equal(hasElement(html, 'form', 'method="post"'), true);
+  assert.doesNotMatch(quoteSection, /<form\b/i);
+  assert.match(quoteSection, /<div\b[^>]*data-quote-form[^>]*role="form"/i);
+  assert.match(quoteSection, /<button\b[^>]*type="button"[^>]*data-submit-quote/i);
   for (const field of fields) {
     assert.match(html, new RegExp(`(?:id|name)="${field}"`, 'i'));
     assert.match(html, new RegExp(`for="${field}"`, 'i'));

@@ -56,23 +56,22 @@ export function validateQuote(values) {
   return errors;
 }
 
-function collectQuoteValues(form) {
+function collectQuoteValues(fields) {
   const values = {};
 
   for (const name of fieldNames) {
-    const field = form.elements.namedItem(name);
+    const field = fields[name];
     if (field.type === 'checkbox') {
       values[name] = field.checked;
     } else {
-      field.value = field.value.trim();
-      values[name] = field.value;
+      values[name] = field.value.trim();
     }
   }
 
   return values;
 }
 
-function renderSummary(summaryList, values, form) {
+function renderSummary(summaryList, values, fields) {
   summaryList.replaceChildren();
 
   for (const name of fieldNames) {
@@ -82,20 +81,20 @@ function renderSummary(summaryList, values, form) {
     detail.textContent = name === 'consentimiento'
       ? 'Autorizado'
       : name === 'servicio'
-        ? form.elements.namedItem(name).selectedOptions[0].textContent
+        ? fields[name].selectedOptions[0].textContent
         : values[name];
     summaryList.append(term, detail);
   }
 }
 
-function clearFormErrors(form) {
+function clearFormErrors(fields) {
   for (const name of fieldNames) {
-    clearFieldError(form.elements.namedItem(name));
+    clearFieldError(fields[name]);
   }
 }
 
-function updateFieldError(form, field) {
-  const errors = validateQuote(collectQuoteValues(form));
+function updateFieldError(fields, field) {
+  const errors = validateQuote(collectQuoteValues(fields));
   const message = errors[field.name];
 
   if (message) {
@@ -105,28 +104,42 @@ function updateFieldError(form, field) {
   }
 }
 
+function resetQuoteFields(container) {
+  for (const field of container.querySelectorAll('input, select, textarea')) {
+    if (field.type === 'checkbox' || field.type === 'radio') {
+      field.checked = field.defaultChecked;
+    } else if (field.tagName === 'SELECT') {
+      for (const option of field.options) option.selected = option.defaultSelected;
+      if (field.selectedIndex < 0 && field.options.length) field.selectedIndex = 0;
+    } else {
+      field.value = field.defaultValue;
+    }
+  }
+}
+
 export function initQuoteForm(documentRoot) {
-  const form = documentRoot.querySelector('form[data-quote-form]');
+  const form = documentRoot.querySelector('[data-quote-form]');
   if (!form) return;
 
-  const fields = Object.fromEntries(fieldNames.map((name) => [name, form.elements.namedItem(name)]));
+  const fields = Object.fromEntries(fieldNames.map((name) => [name, form.querySelector(`[name="${name}"]`)]));
   const status = form.querySelector('[data-form-status]');
+  const submitButton = form.querySelector('[data-submit-quote]');
   const summary = documentRoot.querySelector('[data-quote-summary]');
   const summaryList = summary?.querySelector('[data-summary-list]');
 
   if (Object.values(fields).some((field) => !field || typeof field.addEventListener !== 'function')
-    || !status || !summary || !summaryList) return;
+    || !status || !submitButton || !summary || !summaryList) return;
 
   const firstField = fields.nombre;
 
   for (const name of fieldNames) {
     const field = fields[name];
-    field.addEventListener(field.type === 'checkbox' ? 'change' : 'input', () => updateFieldError(form, field));
+    field.addEventListener(field.type === 'checkbox' ? 'change' : 'input', () => updateFieldError(fields, field));
   }
 
-  form.addEventListener('submit', (event) => {
+  submitButton.addEventListener('click', (event) => {
     event.preventDefault();
-    const values = collectQuoteValues(form);
+    const values = collectQuoteValues(fields);
     const errors = validateQuote(values);
     const invalidFields = [];
 
@@ -147,9 +160,10 @@ export function initQuoteForm(documentRoot) {
     }
 
     status.hidden = true;
-    renderSummary(summaryList, values, form);
+    renderSummary(summaryList, values, fields);
     form.hidden = true;
     summary.hidden = false;
+    summary.focus();
   });
 
   summary.querySelector('[data-edit-quote]')?.addEventListener('click', () => {
@@ -159,8 +173,8 @@ export function initQuoteForm(documentRoot) {
   });
 
   summary.querySelector('[data-clear-quote]')?.addEventListener('click', () => {
-    form.reset();
-    clearFormErrors(form);
+    resetQuoteFields(form);
+    clearFormErrors(fields);
     status.hidden = true;
     summaryList.replaceChildren();
     summary.hidden = true;

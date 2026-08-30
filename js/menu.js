@@ -19,6 +19,11 @@ export function initMenu(documentRoot = document) {
     if (restoreFocus) button.focus();
   }
 
+  function showDesktopNavigation() {
+    button.setAttribute('aria-expanded', 'false');
+    navigation.hidden = false;
+  }
+
   button.addEventListener('click', () => {
     if (button.getAttribute('aria-expanded') === 'true') {
       closeMenu();
@@ -41,7 +46,7 @@ export function initMenu(documentRoot = document) {
   if (mediaQuery) {
     mediaQuery.addEventListener('change', (event) => {
       if (event.matches) {
-        navigation.hidden = false;
+        showDesktopNavigation();
       } else {
         closeMenu();
       }
@@ -49,8 +54,10 @@ export function initMenu(documentRoot = document) {
   }
 
   if (isDesktop()) {
-    navigation.hidden = false;
+    showDesktopNavigation();
   } else {
     closeMenu();
   }
+
+  button.hidden = false;
 }

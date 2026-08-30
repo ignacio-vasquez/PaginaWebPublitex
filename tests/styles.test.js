@@ -45,7 +45,7 @@ test('diseña un encabezado sticky y una presentación adaptable', () => {
   assert.match(css, /body\s*>\s*header\s*\{[^}]*position:\s*sticky/is);
   assert.match(css, /body\s*>\s*header\s*\{[^}]*display:\s*flex/is);
   assert.match(css, /main\s*>\s*section:first-child\s*\{[^}]*grid-template-columns:\s*1fr/is);
-  assert.match(css, /body\s*>\s*header\s*>\s*a,[^}]*form\s+button\s*\{[^}]*background:\s*var\(--color-accent-dark\)/is);
+  assert.match(css, /body\s*>\s*header\s*>\s*a,[^}]*\[data-quote-form\]\s+button\s*\{[^}]*background:\s*var\(--color-accent-dark\)/is);
   assert.match(css, /html\s*\{[^}]*scroll-padding-top:\s*12rem/is);
   assert.match(css, /main\s*>\s*section\s*\{[^}]*scroll-margin-top:\s*12rem/is);
 });
@@ -69,10 +69,10 @@ test('incluye formulario, responsive y preferencias de accesibilidad', () => {
   const desktopCss = getCssBlock(css, /@media\s*\(min-width:\s*48rem\)\s*/i);
   const reducedMotionCss = getCssBlock(css, /@media\s*\(prefers-reduced-motion:\s*reduce\)\s*/i);
 
-  assert.match(css, /#cotizacion\s+form\s*\{/i);
+  assert.match(css, /#cotizacion\s+\[data-quote-form\]\s*\{/i);
   assert.match(css, /input,\s*select,\s*textarea\s*\{[^}]*border:\s*0\.0625rem solid #7b8790/is);
   assert.match(css, /:focus-visible\s*\{[^}]*outline:\s*0\.2rem solid var\(--color-accent-dark\)/is);
-  assert.match(css, /body\s*>\s*header\s*>\s*a:hover,[^}]*form\s+button:hover\s*\{[^}]*background:\s*var\(--color-accent-deep\)/is);
+  assert.match(css, /body\s*>\s*header\s*>\s*a:hover,[^}]*\[data-quote-form\]\s+button:hover\s*\{[^}]*background:\s*var\(--color-accent-deep\)/is);
   assert.match(desktopCss, /html\s*\{[^}]*scroll-padding-top:\s*5\.5rem/is);
   assert.match(desktopCss, /main\s*>\s*section\s*\{[^}]*scroll-margin-top:\s*5\.5rem/is);
   assert.match(desktopCss, /main\s*>\s*section:first-child\s*\{[^}]*grid-template-columns:\s*minmax\([^)]*\)\s+minmax\([^)]*\)/is);
