@@ -10,13 +10,16 @@
   <body>
     <header>
       <p><a href="#inicio" aria-label="Publitexweb, ir al inicio">Publitexweb</a></p>
-      <nav aria-label="Navegación principal">
+      <button id="menu-button" type="button" aria-expanded="false" aria-controls="primary-navigation">
+        <span aria-hidden="true">☰</span><span>Menú</span>
+      </button>
+      <nav id="primary-navigation" aria-label="Navegación principal">
         <ul>
-          <li><a href="#inicio">Inicio</a></li>
-          <li><a href="#servicios">Servicios</a></li>
-          <li><a href="#trabajos">Trabajos</a></li>
-          <li><a href="#empresa">Nosotros</a></li>
-          <li><a href="#contacto">Contacto</a></li>
+          <li><a data-section-link href="#inicio">Inicio</a></li>
+          <li><a data-section-link href="#servicios">Servicios</a></li>
+          <li><a data-section-link href="#trabajos">Trabajos</a></li>
+          <li><a data-section-link href="#empresa">Nosotros</a></li>
+          <li><a data-section-link href="#contacto">Contacto</a></li>
         </ul>
       </nav>
       <a href="#cotizacion">Cotizar proyecto</a>
