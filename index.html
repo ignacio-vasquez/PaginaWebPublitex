@@ -109,7 +109,7 @@
       <section id="cotizacion" aria-labelledby="titulo-cotizacion">
         <h2 id="titulo-cotizacion">Cuéntanos sobre tu proyecto</h2>
         <p>Indica qué necesitas. La empresa revisará la información antes de contactarte.</p>
-        <form action="#" method="post">
+        <form action="#" method="post" data-quote-form novalidate>
           <p><label for="nombre">Nombre</label><input id="nombre" name="nombre" autocomplete="name" required></p>
           <p><label for="empresa-cliente">Empresa</label><input id="empresa-cliente" name="empresa-cliente" autocomplete="organization"></p>
           <p><label for="telefono">Teléfono</label><input id="telefono" name="telefono" type="tel" autocomplete="tel" required></p>
@@ -125,9 +125,17 @@
             </select>
           </p>
           <p><label for="descripcion">Descripción, medidas y ubicación</label><textarea id="descripcion" name="descripcion" rows="6" required></textarea></p>
-          <p><label><input name="consentimiento" type="checkbox" required> Autorizo el uso de estos datos para responder mi solicitud.</label></p>
+          <p><label><input id="consentimiento" name="consentimiento" type="checkbox" required> Autorizo el uso de estos datos para responder mi solicitud.</label></p>
+          <div class="form-status" data-form-status role="status" aria-live="polite" hidden></div>
           <button type="submit">Enviar solicitud</button>
         </form>
+        <section class="quote-summary" data-quote-summary aria-labelledby="quote-summary-title" hidden>
+          <h3 id="quote-summary-title">Resumen de tu solicitud</h3>
+          <p><strong>Simulación: esta solicitud todavía no fue enviada a la empresa</strong></p>
+          <dl data-summary-list></dl>
+          <button type="button" data-edit-quote>Editar datos</button>
+          <button type="button" data-clear-quote>Limpiar formulario</button>
+        </section>
       </section>
 
       <section id="contacto" aria-labelledby="titulo-contacto">
