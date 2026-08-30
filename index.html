@@ -70,18 +70,34 @@
       <section id="trabajos" aria-labelledby="titulo-trabajos">
         <p>Proyectos realizados</p>
         <h2 id="titulo-trabajos">Trabajos que hacen visible una marca</h2>
-        <figure>
+        <div role="group" aria-label="Filtrar trabajos">
+          <button type="button" data-filter="all" aria-pressed="true">Todos</button>
+          <button type="button" data-filter="letreros" aria-pressed="false">Letreros</button>
+          <button type="button" data-filter="vehiculos" aria-pressed="false">Vehículos</button>
+          <button type="button" data-filter="adhesivos" aria-pressed="false">Adhesivos</button>
+        </div>
+        <figure data-category="letreros">
           <img src="assets/trabajo-letrero.svg" alt="Imagen provisional de un letrero luminoso instalado en la fachada de un negocio">
           <figcaption>Letrero luminoso para local comercial</figcaption>
+          <button type="button" data-portfolio-open>Ver trabajo: letrero luminoso</button>
         </figure>
-        <figure>
+        <figure data-category="vehiculos">
           <img src="assets/trabajo-camion.svg" alt="Imagen provisional de un camión comercial con rotulación adhesiva">
           <figcaption>Rotulación de vehículo comercial</figcaption>
+          <button type="button" data-portfolio-open>Ver trabajo: rotulación vehicular</button>
         </figure>
-        <figure>
+        <figure data-category="adhesivos">
           <img src="assets/trabajo-vitrina.svg" alt="Imagen provisional de una vitrina decorada con gráficas adhesivas">
           <figcaption>Adhesivos para vitrina</figcaption>
+          <button type="button" data-portfolio-open>Ver trabajo: adhesivos para vitrina</button>
         </figure>
+        <div id="portfolio-dialog" role="dialog" aria-modal="true" aria-labelledby="portfolio-dialog-title" hidden>
+          <div data-dialog-panel>
+            <button type="button" data-dialog-close>Cerrar</button>
+            <img data-dialog-image alt="">
+            <h3 id="portfolio-dialog-title" data-dialog-title></h3>
+          </div>
+        </div>
       </section>
 
       <section id="empresa" aria-labelledby="titulo-empresa">
