@@ -1,6 +1,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { createDom } = require('./dom');
+const { loadHomepage } = require('./html');
 
 function createQuoteDom() {
   return createDom(`
@@ -21,7 +22,7 @@ function createQuoteDom() {
         <p><strong>Simulación: esta solicitud todavía no fue enviada a la empresa</strong></p>
         <dl data-summary-list></dl>
         <button type="button" data-edit-quote>Editar datos</button>
-        <button type="button" data-clear-quote>Limpiar formulario</button>
+        <button type="button" data-clear-quote>Crear otra solicitud</button>
       </section>
     </section>
   `);
@@ -201,7 +202,7 @@ test('Editar datos restaura el formulario y enfoca su primer campo', async () =>
   assert.equal(documentRoot.activeElement, documentRoot.querySelector('[name="nombre"]'));
 });
 
-test('Limpiar formulario restablece los campos y oculta el resumen', async () => {
+test('Crear otra solicitud reinicia el flujo y enfoca el primer campo', async () => {
   const dom = createQuoteDom();
   const { initQuoteForm } = await import('../js/formulario.js');
   const documentRoot = dom.window.document;
@@ -215,6 +216,8 @@ test('Limpiar formulario restablece los campos y oculta el resumen', async () =>
   assert.equal(documentRoot.querySelector('[data-quote-summary]').hidden, true);
   assert.equal(documentRoot.querySelector('[name="nombre"]').value, '');
   assert.equal(documentRoot.querySelector('[name="consentimiento"]').checked, false);
+  assert.equal(documentRoot.activeElement, documentRoot.querySelector('[name="nombre"]'));
+  assert.match(loadHomepage(), /data-clear-quote>Crear otra solicitud<\/button>/);
 });
 
 test('los mensajes conservan las descripciones existentes al limpiar un error', async () => {
