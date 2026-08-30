@@ -89,6 +89,7 @@ test('presenta los estados interactivos de navegación, portafolio y formulario'
   const mobileCss = css.slice(0, css.indexOf('@media (min-width: 48rem)'));
 
   assert.match(mobileCss, /#menu-button\s*\{/i);
+  assert.match(mobileCss, /#menu-button\[aria-expanded="true"\]\s*\{[^}]*(?:background|border-color|color):/is);
   assert.match(mobileCss, /#primary-navigation\[hidden\]\s*\{/i);
   assert.match(css, /\[data-filter\]\[aria-pressed="true"\]\s*\{/i);
   assert.match(css, /\[aria-current="location"\]\s*\{/i);

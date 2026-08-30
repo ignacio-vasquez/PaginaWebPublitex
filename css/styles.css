@@ -458,6 +458,12 @@ form button:hover {
   background: rgb(255 255 255 / 0.12);
 }
 
+#menu-button[aria-expanded="true"] {
+  border-color: var(--color-accent);
+  background: var(--color-accent-dark);
+  color: #fff;
+}
+
 #primary-navigation {
   order: 3;
   width: 100%;
