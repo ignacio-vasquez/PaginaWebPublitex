@@ -5,5 +5,8 @@
   "description": "Sitio y sistema de gestión para una empresa de publicidad visual",
   "scripts": {
     "test": "node --test"
+  },
+  "devDependencies": {
+    "jsdom": "26.1.0"
   }
 }

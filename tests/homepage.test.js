@@ -120,9 +120,9 @@ test('usa identificadores únicos y un solo título principal', () => {
   assert.equal((html.match(/<h1\b/gi) || []).length, 1);
 });
 
-test('no incorpora tecnologías reservadas para etapas posteriores', () => {
+test('no incorpora estilos ni JavaScript inline', () => {
   const html = loadHomepage();
 
-  assert.doesNotMatch(html, /<style\b|<script\b|style="/i);
+  assert.doesNotMatch(html, /<style\b|style="|<script\b(?![^>]*\bsrc="js\/app\.js")/i);
   assert.equal(html.includes('{{'), false);
 });
