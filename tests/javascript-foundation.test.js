@@ -1,6 +1,6 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { existsSync, readFileSync } = require('node:fs');
+const { existsSync, readdirSync, readFileSync } = require('node:fs');
 const { join } = require('node:path');
 const { loadHomepage } = require('./html');
 
@@ -17,13 +17,13 @@ test('la aplicación coordina módulos de responsabilidades separadas', () => {
   }
 });
 
-test('el formulario no referencia APIs de red ni almacenamiento', () => {
-  const formSource = readFileSync(join(__dirname, '..', 'js', 'formulario.js'), 'utf8');
-  const messageSource = readFileSync(join(__dirname, '..', 'js', 'mensajes.js'), 'utf8');
+test('los módulos JavaScript no referencian APIs de red ni almacenamiento', () => {
+  const scriptsDirectory = join(__dirname, '..', 'js');
   const quoteForm = loadHomepage().match(/<form\b[^>]*data-quote-form[^>]*>[\s\S]*?<\/form>/i)?.[0] ?? '';
 
-  for (const source of [formSource, messageSource]) {
-    assert.doesNotMatch(source, /\bfetch\b|\bXMLHttpRequest\b|\bsendBeacon\b|\blocalStorage\b|\bsessionStorage\b|\bindexedDB\b|document\.cookie/);
+  for (const fileName of readdirSync(scriptsDirectory).filter((fileName) => fileName.endsWith('.js'))) {
+    const source = readFileSync(join(scriptsDirectory, fileName), 'utf8');
+    assert.doesNotMatch(source, /(fetch\s*\(|XMLHttpRequest|sendBeacon|localStorage|sessionStorage|indexedDB|document\.cookie)/);
   }
   assert.match(quoteForm, /\baction="#"/i);
 });

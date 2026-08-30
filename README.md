@@ -2,25 +2,39 @@
 
 Proyecto progresivo para una empresa de publicidad visual y para practicar desarrollo web y bases de datos.
 
-## Etapa actual: CSS
+## Etapa actual: JavaScript
 
-Esta versión contiene la estructura semántica y una interfaz responsive creada con CSS tradicional. Todavía no incluye comportamiento dinámico.
+Esta versión combina estructura semántica, CSS responsive y comportamientos accesibles en el navegador: menú móvil, navegación activa, filtros de portafolio, visor de trabajos y validación de cotizaciones.
 
 ## Prerrequisitos
 
 Node.js 22 o superior.
 
-## Ver la página
+## Preparar y ver la página
 
-Abre `index.html` en un navegador web.
+Después de clonar el proyecto, instala las dependencias:
 
-La hoja `css/styles.css` contiene tokens, componentes y reglas responsive organizadas por sección.
+```bash
+npm install
+```
+
+Inicia un servidor local y abre <http://127.0.0.1:8081>:
+
+```bash
+python3 -m http.server 8081 --bind 127.0.0.1
+```
+
+Los módulos JavaScript viven en `js/`; cada archivo tiene una responsabilidad definida.
+
+El formulario de cotización es una simulación local: no envía ni guarda datos.
 
 ## Ejecutar las pruebas
 
 ```bash
 npm test
 ```
+
+Este comando ejecuta todas las comprobaciones automatizadas.
 
 ## Ruta de aprendizaje
 

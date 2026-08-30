@@ -67,6 +67,7 @@ test('organiza servicios, proceso y portafolio como componentes visuales', () =>
 test('incluye formulario, responsive y preferencias de accesibilidad', () => {
   const css = loadStylesheet();
   const desktopCss = getCssBlock(css, /@media\s*\(min-width:\s*48rem\)\s*/i);
+  const reducedMotionCss = getCssBlock(css, /@media\s*\(prefers-reduced-motion:\s*reduce\)\s*/i);
 
   assert.match(css, /#cotizacion\s+form\s*\{/i);
   assert.match(css, /input,\s*select,\s*textarea\s*\{[^}]*border:\s*0\.0625rem solid #7b8790/is);
@@ -78,5 +79,24 @@ test('incluye formulario, responsive y preferencias de accesibilidad', () => {
   assert.match(desktopCss, /#servicios,\s*#trabajos\s*\{[^}]*grid-template-columns:\s*repeat\(3,\s*minmax\(0,\s*1fr\)\)/is);
   assert.match(desktopCss, /#proceso\s+ol\s*\{[^}]*grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\)/is);
   assert.match(css, /@media\s*\(prefers-reduced-motion:\s*reduce\)/i);
+  assert.match(reducedMotionCss, /transition:\s*none\s*!important/is);
   assert.doesNotMatch(css, /@import|bootstrap|tailwind/i);
+});
+
+test('presenta los estados interactivos de navegación, portafolio y formulario', () => {
+  const css = loadStylesheet();
+  const desktopCss = getCssBlock(css, /@media\s*\(min-width:\s*48rem\)\s*/i);
+  const mobileCss = css.slice(0, css.indexOf('@media (min-width: 48rem)'));
+
+  assert.match(mobileCss, /#menu-button\s*\{/i);
+  assert.match(mobileCss, /#primary-navigation\[hidden\]\s*\{/i);
+  assert.match(css, /\[data-filter\]\[aria-pressed="true"\]\s*\{/i);
+  assert.match(css, /\[aria-current="location"\]\s*\{/i);
+  assert.match(css, /\.field-error\s*\{/i);
+  assert.match(css, /\[aria-invalid="true"\]\s*\{[^}]*border-color:/is);
+  assert.match(css, /#portfolio-dialog\s*\{[^}]*position:\s*fixed/is);
+  assert.match(css, /body\.dialog-open\s*\{[^}]*overflow:\s*hidden/is);
+  assert.match(css, /\[hidden\]\s*\{[^}]*display:\s*none\s*!important/is);
+  assert.match(desktopCss, /#menu-button\s*\{[^}]*display:\s*none/is);
+  assert.match(desktopCss, /#primary-navigation\s*\{[^}]*display:\s*block/is);
 });

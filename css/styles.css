@@ -433,6 +433,205 @@ form button:hover {
   outline-offset: 0.2rem;
 }
 
+[hidden] {
+  display: none !important;
+}
+
+/* Navigation states */
+#menu-button {
+  display: inline-flex;
+  min-height: 2.75rem;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.55rem 0.8rem;
+  border: 0.0625rem solid #dce4ea;
+  border-radius: var(--radius-small);
+  background: transparent;
+  color: #fff;
+  font: inherit;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+#menu-button:hover {
+  border-color: #fff;
+  background: rgb(255 255 255 / 0.12);
+}
+
+#primary-navigation {
+  order: 3;
+  width: 100%;
+}
+
+#primary-navigation[hidden] {
+  display: none;
+}
+
+#primary-navigation ul {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.25rem;
+}
+
+#primary-navigation a {
+  display: block;
+  padding: 0.55rem 0.65rem;
+  border-radius: var(--radius-small);
+}
+
+#primary-navigation a:hover,
+#primary-navigation a:focus-visible {
+  background: rgb(255 255 255 / 0.12);
+}
+
+#primary-navigation [aria-current="location"] {
+  color: #fff;
+  text-decoration: underline;
+  text-decoration-color: var(--color-accent);
+  text-decoration-thickness: 0.18em;
+}
+
+/* Portfolio controls and dialog */
+#trabajos > [role="group"] {
+  display: flex;
+  grid-column: 1 / -1;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+}
+
+[data-filter],
+[data-portfolio-open],
+[data-dialog-close],
+[data-edit-quote],
+[data-clear-quote] {
+  min-height: 2.5rem;
+  padding: 0.55rem 0.8rem;
+  border: 0.0625rem solid currentColor;
+  border-radius: var(--radius-small);
+  background: transparent;
+  color: var(--color-ink);
+  font: inherit;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+[data-filter]:hover,
+[data-filter]:focus-visible,
+[data-portfolio-open]:hover,
+[data-portfolio-open]:focus-visible {
+  border-color: var(--color-accent-dark);
+  background: #fff7f1;
+  color: var(--color-accent-deep);
+}
+
+[data-filter][aria-pressed="true"] {
+  border-color: var(--color-accent-dark);
+  background: var(--color-accent-dark);
+  color: #fff;
+}
+
+[data-portfolio-open] {
+  width: calc(100% - 2rem);
+  margin: 0 1rem 1rem;
+}
+
+#portfolio-dialog {
+  position: fixed;
+  z-index: 30;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  background: rgb(16 28 40 / 0.72);
+}
+
+#portfolio-dialog [data-dialog-panel] {
+  width: min(100%, 46rem);
+  max-height: calc(100svh - 2rem);
+  overflow: auto;
+  padding: 1rem;
+  border-radius: var(--radius-large);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-card);
+}
+
+#portfolio-dialog [data-dialog-close] {
+  display: block;
+  margin: 0 0 1rem auto;
+}
+
+#portfolio-dialog img {
+  width: 100%;
+  max-height: 65svh;
+  border-radius: var(--radius-small);
+  object-fit: contain;
+}
+
+#portfolio-dialog h3 {
+  margin: 1rem 0 0;
+}
+
+body.dialog-open {
+  overflow: hidden;
+}
+
+/* Quote form feedback */
+.field-error {
+  display: block;
+  margin-top: 0.35rem;
+  color: #9f1d1d;
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+[aria-invalid="true"] {
+  border-color: #9f1d1d;
+  box-shadow: 0 0 0 0.12rem rgb(159 29 29 / 0.18);
+}
+
+[data-form-status],
+.quote-summary {
+  padding: 1rem;
+  border: 0.0625rem solid var(--color-border);
+  border-radius: var(--radius-small);
+  background: var(--color-surface-soft);
+}
+
+[data-form-status][data-status-kind="error"] {
+  border-color: #9f1d1d;
+  background: #fff0f0;
+  color: #741313;
+}
+
+[data-form-status][data-status-kind="success"] {
+  border-color: #22663a;
+  background: #edf9f0;
+  color: #164928;
+}
+
+.quote-summary {
+  max-width: 48rem;
+  margin-top: 1.25rem;
+}
+
+.quote-summary dl {
+  display: grid;
+  grid-template-columns: minmax(8rem, 0.4fr) 1fr;
+  gap: 0.5rem 1rem;
+}
+
+.quote-summary dt {
+  font-weight: 800;
+}
+
+.quote-summary dd {
+  margin: 0;
+}
+
+.quote-summary button + button {
+  margin-left: 0.5rem;
+}
+
 @media (min-width: 48rem) {
   html {
     scroll-padding-top: 5.5rem;
@@ -444,6 +643,21 @@ form button:hover {
 
   body > header {
     flex-wrap: nowrap;
+  }
+
+  #menu-button {
+    display: none;
+  }
+
+  #primary-navigation {
+    display: block;
+    order: initial;
+    width: auto;
+  }
+
+  #primary-navigation ul {
+    display: flex;
+    gap: 0.5rem 1rem;
   }
 
   main > section:first-child {
@@ -500,6 +714,7 @@ form button:hover {
   *::before,
   *::after {
     scroll-behavior: auto !important;
+    transition: none !important;
     transition-duration: 0.01ms !important;
   }
 }
