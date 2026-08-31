@@ -29,3 +29,10 @@ test('los módulos JavaScript no referencian APIs de red ni almacenamiento', () 
   assert.match(html, /<div\b[^>]*data-quote-form[^>]*role="form"/i);
   assert.match(html, /<button\b[^>]*type="button"[^>]*data-submit-quote/i);
 });
+
+test('renderiza solicitudes sin innerHTML', () => {
+  for (const fileName of ['formulario.js', 'solicitudes.js']) {
+    const source = readFileSync(join(__dirname, '..', 'js', fileName), 'utf8');
+    assert.doesNotMatch(source, /innerHTML/);
+  }
+});

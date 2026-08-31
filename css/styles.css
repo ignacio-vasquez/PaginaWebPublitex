@@ -638,6 +638,184 @@ body.dialog-open {
   margin-left: 0.5rem;
 }
 
+/* Prepared quote requests */
+[data-requests-view] {
+  display: grid;
+  gap: 1rem;
+  max-width: 72rem;
+  margin-top: 1.5rem;
+}
+
+[data-active-request],
+[data-request-history] {
+  min-width: 0;
+  padding: clamp(1rem, 3vw, 1.5rem);
+  border: 0.0625rem solid var(--color-border);
+  border-radius: var(--radius-large);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-card);
+}
+
+[data-active-request] {
+  display: grid;
+  align-content: start;
+  gap: 1rem;
+}
+
+[data-active-request] h3,
+[data-request-history] h3 {
+  margin-bottom: 0;
+}
+
+[data-active-request] > p {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 0.92rem;
+}
+
+[data-active-request-list] {
+  display: grid;
+  grid-template-columns: minmax(7rem, 0.4fr) minmax(0, 1fr);
+  gap: 0.6rem 1rem;
+  margin: 0;
+  padding: 1rem;
+  border-radius: var(--radius-small);
+  background: var(--color-surface-soft);
+}
+
+[data-active-request-list] dt {
+  font-weight: 800;
+}
+
+[data-active-request-list] dd {
+  min-width: 0;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+[data-active-request] > button,
+[data-request-actions] button,
+[data-cancel-form],
+[data-confirm-delete],
+[data-cancel-delete] {
+  min-height: 2.75rem;
+  padding: 0.65rem 0.9rem;
+  border: 0.0625rem solid var(--color-accent-dark);
+  border-radius: var(--radius-small);
+  background: var(--color-surface);
+  color: var(--color-accent-text);
+  font: inherit;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+[data-active-request] > button:hover,
+[data-active-request] > button:focus-visible,
+[data-request-actions] button:hover,
+[data-request-actions] button:focus-visible,
+[data-cancel-form]:hover,
+[data-cancel-form]:focus-visible,
+[data-cancel-delete]:hover,
+[data-cancel-delete]:focus-visible {
+  background: #fff7f1;
+  color: var(--color-accent-deep);
+}
+
+[data-active-request] > button:first-of-type,
+[data-confirm-delete] {
+  background: var(--color-accent-dark);
+  color: #fff;
+}
+
+[data-active-request] > button:first-of-type:hover,
+[data-active-request] > button:first-of-type:focus-visible,
+[data-confirm-delete]:hover,
+[data-confirm-delete]:focus-visible {
+  background: var(--color-accent-deep);
+  color: #fff;
+}
+
+[data-request-history] {
+  display: grid;
+  align-content: start;
+  gap: 1rem;
+}
+
+[data-request-list] {
+  display: grid;
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+[data-request-item] {
+  display: grid;
+  gap: 0.75rem;
+  min-width: 0;
+  padding: 0.9rem;
+  border: 0.0625rem solid var(--color-border);
+  border-radius: var(--radius-small);
+  background: var(--color-surface-soft);
+}
+
+[data-request-item] > span:first-child {
+  overflow-wrap: anywhere;
+}
+
+[data-request-actions] {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+[data-requests-status] {
+  max-width: 72rem;
+  margin-top: 1rem;
+  padding: 0.85rem 1rem;
+  border: 0.0625rem solid #22663a;
+  border-radius: var(--radius-small);
+  background: #edf9f0;
+  color: #164928;
+}
+
+#request-delete-dialog {
+  position: fixed;
+  z-index: 40;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  background: rgb(16 28 40 / 0.72);
+}
+
+[data-request-delete-panel] {
+  width: min(100%, 32rem);
+  max-height: calc(100svh - 2rem);
+  overflow: auto;
+  padding: clamp(1rem, 4vw, 2rem);
+  border: 0.0625rem solid var(--color-border);
+  border-radius: var(--radius-large);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-card);
+}
+
+[data-request-delete-panel] h3 {
+  margin-bottom: 0.75rem;
+}
+
+[data-request-delete-panel] p {
+  margin-bottom: 1.25rem;
+}
+
+[data-request-delete-panel] button + button {
+  margin-left: 0.5rem;
+}
+
+[data-cancel-form] {
+  margin-top: 0.75rem;
+}
+
 @media (min-width: 48rem) {
   html {
     scroll-padding-top: 5.5rem;
@@ -699,6 +877,24 @@ body.dialog-open {
 
   [data-quote-form] button {
     justify-self: start;
+  }
+
+  [data-requests-view] {
+    grid-template-columns: minmax(0, 1.2fr) minmax(16rem, 0.8fr);
+    align-items: start;
+  }
+
+  [data-active-request] {
+    grid-column: 1;
+  }
+
+  [data-request-history] {
+    grid-column: 2;
+  }
+
+  [data-request-item] {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
   }
 
   body > footer {

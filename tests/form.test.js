@@ -281,6 +281,28 @@ test('Crear otra solicitud reinicia el flujo y enfoca el primer campo', async ()
   assert.match(loadHomepage(), /data-create-request>Crear otra solicitud<\/button>/);
 });
 
+test('oculta anuncios anteriores al entrar en crear o editar', async () => {
+  const dom = createQuoteDom();
+  const { initQuoteForm } = await import('../js/formulario.js');
+  const documentRoot = dom.window.document;
+  const ids = ['request-ana', 'request-beto'];
+
+  initQuoteForm(documentRoot, { createId: () => ids.shift(), now: () => '2026-08-30T10:00:00.000Z' });
+  fillQuote(documentRoot, { nombre: 'Ana' });
+  submit(documentRoot.querySelector('[data-quote-form]'), dom.window);
+  const requestsStatus = documentRoot.querySelector('[data-requests-status]');
+  assert.equal(requestsStatus.hidden, false);
+
+  documentRoot.querySelector('[data-create-request]').click();
+  assert.equal(requestsStatus.hidden, true);
+
+  fillQuote(documentRoot, { nombre: 'Beto' });
+  submit(documentRoot.querySelector('[data-quote-form]'), dom.window);
+  assert.equal(requestsStatus.hidden, false);
+  documentRoot.querySelector('[data-request-item] [data-edit-request]').click();
+  assert.equal(requestsStatus.hidden, true);
+});
+
 test('actualiza el título de modo en el contrato público al crear y editar', async () => {
   const dom = createDom(loadHomepage());
   const { initQuoteForm } = await import('../js/formulario.js');

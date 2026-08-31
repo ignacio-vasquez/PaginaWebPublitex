@@ -101,3 +101,26 @@ test('presenta los estados interactivos de navegación, portafolio y formulario'
   assert.match(desktopCss, /#menu-button\s*\{[^}]*display:\s*none/is);
   assert.match(desktopCss, /#primary-navigation\s*\{[^}]*display:\s*block/is);
 });
+
+test('presenta solicitudes preparadas como detalle y lista adaptable', () => {
+  const css = loadStylesheet();
+  const desktopCss = getCssBlock(css, /@media\s*\(min-width:\s*48rem\)\s*/i);
+  const requestSelectors = [
+    '[data-requests-view]', '[data-active-request]', '[data-request-history]',
+    '[data-request-item]', '#request-delete-dialog', '[data-request-delete-panel]',
+    '[data-request-actions]', '[data-cancel-form]',
+  ];
+
+  for (const selector of requestSelectors) {
+    const escapedSelector = selector.replace(/[.[\]#]/g, '\\$&');
+    assert.match(css, new RegExp(`${escapedSelector}\\s*\\{`, 'i'), `Falta estilo para ${selector}`);
+  }
+
+  assert.match(css, /#request-delete-dialog\s*\{[^}]*position:\s*fixed[^}]*inset:\s*0[^}]*background:/is);
+  assert.match(css, /\[data-request-delete-panel\]\s*\{[^}]*max-height:[^}]*overflow:\s*auto/is);
+  assert.match(css, /\[data-request-actions\]\s*\{[^}]*display:\s*flex[^}]*flex-wrap:\s*wrap/is);
+  assert.match(css, /\[data-request-history\]\s*\{[^}]*display:\s*(?:grid|block)/is);
+  assert.match(css, /\[data-request-item\]\s*\{[^}]*display:\s*(?:grid|flex)/is);
+  assert.match(desktopCss, /\[data-active-request\][^}]*\{[^}]*grid-column:/is);
+  assert.match(desktopCss, /\[data-request-history\][^}]*\{[^}]*grid-column:/is);
+});

@@ -286,7 +286,7 @@ export function initQuoteForm(documentRoot = document, options = {}) {
       ? 'Solicitud eliminada. Tus otras solicitudes preparadas no cambiaron.'
       : 'Solicitud eliminada. No quedan solicitudes preparadas.');
     if (active) focusActive();
-    else beginCreate();
+    else beginCreate({ preserveRequestsStatus: true });
   }
 
   function setCreateMode() {
@@ -338,11 +338,12 @@ export function initQuoteForm(documentRoot = document, options = {}) {
     if (getActiveRequest(state)) focusActive();
   }
 
-  function beginCreate() {
+  function beginCreate({ preserveRequestsStatus = false } = {}) {
     setCreateMode();
     resetQuoteFields(form);
     clearFormErrors(fields);
     status.hidden = true;
+    if (!preserveRequestsStatus) requestsStatus.hidden = true;
     requestsView.hidden = true;
     form.hidden = false;
     cancelButton.hidden = false;
@@ -363,6 +364,7 @@ export function initQuoteForm(documentRoot = document, options = {}) {
     }
     clearFormErrors(fields);
     status.hidden = true;
+    requestsStatus.hidden = true;
     requestsView.hidden = true;
     form.hidden = false;
     cancelButton.hidden = false;
