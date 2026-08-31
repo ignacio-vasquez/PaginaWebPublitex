@@ -246,6 +246,30 @@ test('el envío válido muestra un resumen de simulación sin enviar el formular
   assert.equal(dom.window.localStorage.length, 0);
 });
 
+test('crea una solicitud aunque randomUUID no esté disponible en HTTP local', async () => {
+  const cryptoDescriptor = Object.getOwnPropertyDescriptor(globalThis, 'crypto');
+  const dom = createQuoteDom();
+  const { initQuoteForm } = await import('../js/formulario.js');
+  const documentRoot = dom.window.document;
+
+  Object.defineProperty(globalThis, 'crypto', {
+    configurable: true,
+    value: {},
+  });
+
+  try {
+    initQuoteForm(documentRoot, { now: () => '2026-08-30T10:00:00.000Z' });
+    fillValidQuote(documentRoot);
+    submit(documentRoot.querySelector('[data-quote-form]'), dom.window);
+
+    assert.equal(documentRoot.querySelector('[data-quote-form]').hidden, true);
+    assert.equal(documentRoot.querySelector('[data-requests-view]').hidden, false);
+    assert.match(documentRoot.querySelector('[data-active-request-list]').textContent, /Ignacio/);
+  } finally {
+    Object.defineProperty(globalThis, 'crypto', cryptoDescriptor);
+  }
+});
+
 test('Editar datos restaura el formulario y enfoca su primer campo', async () => {
   const dom = createQuoteDom();
   const { initQuoteForm } = await import('../js/formulario.js');

@@ -29,6 +29,16 @@ const summaryLabels = {
   descripcion: 'Descripción',
   consentimiento: 'Autorización de datos',
 };
+let requestIdSequence = 0;
+
+function createRequestId() {
+  if (typeof globalThis.crypto?.randomUUID === 'function') {
+    return globalThis.crypto.randomUUID();
+  }
+
+  requestIdSequence += 1;
+  return `request-${Date.now()}-${requestIdSequence}`;
+}
 
 function textValue(value) {
   return typeof value === 'string' ? value.trim() : '';
@@ -205,7 +215,7 @@ export function initQuoteForm(documentRoot = document, options = {}) {
     || !history || !requestList || !requestsStatus || !cancelButton) return;
 
   const firstField = fields.nombre;
-  const createId = options.createId ?? (() => globalThis.crypto.randomUUID());
+  const createId = options.createId ?? createRequestId;
   const now = options.now ?? (() => new Date().toISOString());
   let state = createRequestState();
   let editingId = null;
