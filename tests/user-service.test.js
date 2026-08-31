@@ -84,6 +84,56 @@ test('rechaza el correo duplicado con EMAIL_EXISTS', async () => {
   });
 });
 
+test('evita duplicados cuando dos registros del mismo correo ocurren en paralelo', async () => {
+  const users = createUserRepository();
+  let nextId = 1;
+  let hashCalls = 0;
+  let releaseHashes;
+  const hashesReleased = new Promise((resolve) => { releaseHashes = resolve; });
+  const service = createUserService({
+    users,
+    createId: () => `user-${nextId++}`,
+    hashPassword: async (password) => {
+      hashCalls += 1;
+      if (hashCalls === 2) releaseHashes();
+      await hashesReleased;
+      return `hash:${password}`;
+    },
+    verifyPassword: async (password, hash) => hash === `hash:${password}`,
+  });
+
+  const registrations = await Promise.allSettled([
+    service.registerClient({ name: 'Ana', email: 'ana@example.com', password: 'secreto1' }),
+    service.registerClient({ name: 'Otra Ana', email: ' ANA@EXAMPLE.COM ', password: 'secreto2' }),
+  ]);
+
+  assert.deepEqual(registrations.map(({ status }) => status).sort(), ['fulfilled', 'rejected']);
+  assert.equal(registrations.find(({ status }) => status === 'rejected').reason.code, 'EMAIL_EXISTS');
+  const stored = await Promise.all([users.findById('user-1'), users.findById('user-2')]);
+  assert.equal(stored.filter(Boolean).length, 1);
+  assert.ok(await users.findByEmail('ana@example.com'));
+});
+
+test('mapea una restricción de unicidad del repositorio a EMAIL_EXISTS', async () => {
+  const service = createUserService({
+    users: {
+      async findByEmail() { return null; },
+      async create() {
+        const error = new Error('unique constraint failed');
+        error.code = 'UNIQUE_VIOLATION';
+        throw error;
+      },
+    },
+    createId: () => 'user-1',
+    hashPassword: async (password) => `hash:${password}`,
+    verifyPassword: async () => true,
+  });
+
+  await assert.rejects(() => service.registerClient({
+    name: 'Ana', email: 'ana@example.com', password: 'secreto1',
+  }), { code: 'EMAIL_EXISTS' });
+});
+
 test('autentica credenciales correctas y devuelve el usuario público', async () => {
   const { service } = createDeterministicService();
   await service.registerClient({ name: 'Ana', email: 'ana@example.com', password: 'secreto1' });

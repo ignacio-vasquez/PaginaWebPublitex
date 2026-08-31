@@ -8,6 +8,11 @@ function createUserRepository(initialUsers = []) {
   return {
     async create(user) {
       const copy = copyUser(user);
+      if (storedUsers.some((storedUser) => storedUser.email === copy.email)) {
+        const error = new Error('El correo ya está registrado.');
+        error.code = 'EMAIL_EXISTS';
+        throw error;
+      }
       storedUsers.push(copy);
       return copyUser(copy);
     },

@@ -37,6 +37,14 @@ function invalidCredentials() {
   return createError('INVALID_CREDENTIALS', 'Las credenciales no son válidas.');
 }
 
+function isEmailUniquenessError(error) {
+  if (!error) return false;
+  if (error.code === 'EMAIL_EXISTS') return true;
+  const code = typeof error.code === 'string' ? error.code : '';
+  const message = typeof error.message === 'string' ? error.message : '';
+  return /unique|duplicate|constraint|23505|er_dup_entry/i.test(`${code} ${message}`);
+}
+
 function createUserService({ users, hashPassword, verifyPassword, createId }) {
   async function createUser({ name, email, password, role, privileged = false }) {
     const normalizedName = normalizeName(name);
@@ -49,13 +57,21 @@ function createUserService({ users, hashPassword, verifyPassword, createId }) {
       throw createError('EMAIL_EXISTS', 'El correo ya está registrado.');
     }
     const passwordHash = await hashPassword(password);
-    const stored = await users.create({
-      id: await createId(),
-      name: normalizedName,
-      email: normalizedEmail,
-      role,
-      passwordHash,
-    });
+    let stored;
+    try {
+      stored = await users.create({
+        id: await createId(),
+        name: normalizedName,
+        email: normalizedEmail,
+        role,
+        passwordHash,
+      });
+    } catch (error) {
+      if (isEmailUniquenessError(error)) {
+        throw createError('EMAIL_EXISTS', 'El correo ya está registrado.');
+      }
+      throw error;
+    }
     return getPublicUser(stored);
   }
 
