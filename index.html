@@ -144,6 +144,15 @@
             <ul data-request-list></ul>
           </section>
         </section>
+        <div id="request-delete-dialog" role="alertdialog" aria-modal="true"
+             aria-labelledby="request-delete-title" aria-describedby="request-delete-description" hidden>
+          <div data-request-delete-panel>
+            <h3 id="request-delete-title">Eliminar solicitud</h3>
+            <p id="request-delete-description" data-delete-description></p>
+            <button type="button" data-confirm-delete>Eliminar solicitud</button>
+            <button type="button" data-cancel-delete>Cancelar</button>
+          </div>
+        </div>
         <button type="button" data-cancel-form hidden>Cancelar</button>
       </section>
 

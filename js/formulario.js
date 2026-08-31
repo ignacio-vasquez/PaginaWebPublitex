@@ -3,6 +3,7 @@ import {
   createRequestState,
   getActiveRequest,
   getOtherRequests,
+  removeRequest,
   selectRequest,
   updateRequest,
 } from './solicitudes.js';
@@ -191,6 +192,10 @@ export function initQuoteForm(documentRoot = document, options = {}) {
   const requestList = history?.querySelector('[data-request-list]');
   const requestsStatus = requestsView?.querySelector('[data-requests-status]');
   const cancelButton = documentRoot.querySelector('[data-cancel-form]');
+  const deleteDialog = documentRoot.querySelector('#request-delete-dialog');
+  const deleteDescription = deleteDialog?.querySelector('[data-delete-description]');
+  const confirmDelete = deleteDialog?.querySelector('[data-confirm-delete]');
+  const cancelDelete = deleteDialog?.querySelector('[data-cancel-delete]');
   const formTitle = form.querySelector('[data-form-title]')
     || form.parentElement?.querySelector('[data-form-title]')
     || documentRoot.querySelector('[data-form-title]');
@@ -204,6 +209,85 @@ export function initQuoteForm(documentRoot = document, options = {}) {
   const now = options.now ?? (() => new Date().toISOString());
   let state = createRequestState();
   let editingId = null;
+  let pendingDeleteId = null;
+  let deleteTrigger;
+  let deleteBackgroundState = [];
+
+  const deleteFocusableSelector = [
+    'a[href]',
+    'button:not([disabled])',
+    'input:not([disabled])',
+    'select:not([disabled])',
+    'textarea:not([disabled])',
+    '[tabindex]:not([tabindex="-1"])',
+  ].join(',');
+
+  function getDeleteFocusableElements() {
+    return [...(deleteDialog?.querySelectorAll(deleteFocusableSelector) || [])]
+      .filter((element) => !element.closest('[inert], [hidden], [aria-hidden="true"]'));
+  }
+
+  function isolateDeleteBackground() {
+    deleteBackgroundState = [];
+
+    for (let current = deleteDialog; current?.parentElement && current !== documentRoot.body; current = current.parentElement) {
+      for (const sibling of current.parentElement.children) {
+        if (sibling === current) continue;
+        deleteBackgroundState.push({ element: sibling, wasInert: sibling.hasAttribute('inert') });
+        sibling.setAttribute('inert', '');
+      }
+    }
+  }
+
+  function restoreDeleteBackground() {
+    for (const { element, wasInert } of deleteBackgroundState) {
+      if (!wasInert) element.removeAttribute('inert');
+    }
+    deleteBackgroundState = [];
+  }
+
+  function closeDeleteDialog({ restoreFocus = true } = {}) {
+    if (!deleteDialog || deleteDialog.hidden) return;
+
+    deleteDialog.hidden = true;
+    restoreDeleteBackground();
+    const trigger = deleteTrigger;
+    pendingDeleteId = null;
+    deleteTrigger = undefined;
+    if (restoreFocus) trigger?.isConnected && trigger.focus();
+  }
+
+  function openDeleteDialog(id, trigger) {
+    const request = state.requests.find((candidate) => candidate.id === id);
+    if (!deleteDialog || !deleteDescription || !confirmDelete || !cancelDelete || !request) return;
+
+    pendingDeleteId = id;
+    deleteTrigger = trigger;
+    deleteDescription.textContent = `¿Eliminar la solicitud preparada de ${request.nombre}?`;
+    deleteDialog.hidden = false;
+    isolateDeleteBackground();
+    cancelDelete.focus();
+  }
+
+  function confirmPendingDelete() {
+    if (pendingDeleteId === null) return;
+
+    const id = pendingDeleteId;
+    if (!state.requests.some((request) => request.id === id)) {
+      closeDeleteDialog();
+      return;
+    }
+
+    state = removeRequest(state, id);
+    const active = getActiveRequest(state);
+    closeDeleteDialog({ restoreFocus: false });
+    renderRequests();
+    announce(active
+      ? 'Solicitud eliminada. Tus otras solicitudes preparadas no cambiaron.'
+      : 'Solicitud eliminada. No quedan solicitudes preparadas.');
+    if (active) focusActive();
+    else beginCreate();
+  }
 
   function setCreateMode() {
     editingId = null;
@@ -345,6 +429,12 @@ export function initQuoteForm(documentRoot = document, options = {}) {
     const target = event.target;
     if (!target || typeof target.closest !== 'function') return;
 
+    const deleteButton = target.closest('[data-delete-active], [data-delete-request]');
+    if (deleteButton) {
+      openDeleteDialog(deleteButton.dataset.requestId, deleteButton);
+      return;
+    }
+
     const viewButton = target.closest('[data-view-request]');
     if (viewButton) {
       state = selectRequest(state, viewButton.dataset.requestId);
@@ -363,4 +453,40 @@ export function initQuoteForm(documentRoot = document, options = {}) {
     const createButton = target.closest('[data-create-request]');
     if (createButton) beginCreate();
   });
+
+  if (deleteDialog && confirmDelete && cancelDelete) {
+    confirmDelete.addEventListener('click', confirmPendingDelete);
+    cancelDelete.addEventListener('click', () => closeDeleteDialog());
+    documentRoot.addEventListener('keydown', (event) => {
+      if (deleteDialog.hidden) return;
+
+      if (event.key === 'Escape') {
+        closeDeleteDialog();
+        return;
+      }
+
+      if (event.key !== 'Tab') return;
+
+      const focusableElements = getDeleteFocusableElements();
+      const firstElement = focusableElements[0];
+      const lastElement = focusableElements.at(-1);
+      if (!firstElement || !lastElement) {
+        event.preventDefault();
+        deleteDialog.focus();
+        return;
+      }
+
+      if (!deleteDialog.contains(documentRoot.activeElement)
+        || (event.shiftKey && documentRoot.activeElement === firstElement)
+        || (!event.shiftKey && documentRoot.activeElement === lastElement)) {
+        event.preventDefault();
+        (event.shiftKey ? lastElement : firstElement).focus();
+      }
+    });
+    documentRoot.addEventListener('focusin', (event) => {
+      if (!deleteDialog.hidden && !deleteDialog.contains(event.target)) {
+        (getDeleteFocusableElements()[0] || deleteDialog).focus();
+      }
+    });
+  }
 }

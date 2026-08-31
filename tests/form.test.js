@@ -32,7 +32,16 @@ function createQuoteDom() {
           <h3 id="request-history-title">Otras solicitudes preparadas</h3>
           <ul data-request-list></ul>
         </section>
-      </section>
+        </section>
+        <div id="request-delete-dialog" role="alertdialog" aria-modal="true"
+             aria-labelledby="request-delete-title" aria-describedby="request-delete-description" hidden>
+          <div data-request-delete-panel>
+            <h3 id="request-delete-title">Eliminar solicitud</h3>
+            <p id="request-delete-description" data-delete-description></p>
+            <button type="button" data-confirm-delete>Eliminar solicitud</button>
+            <button type="button" data-cancel-delete>Cancelar</button>
+          </div>
+        </div>
       <button type="button" data-cancel-form hidden>Cancelar</button>
     </section>
   `);
@@ -338,6 +347,140 @@ test('cancelar una edición descarta cambios y restaura la solicitud activa ante
   assert.match(documentRoot.querySelector('[data-active-request-list]').textContent, /Beto/);
   assert.match(documentRoot.querySelector('[data-request-item]').textContent, /Ana/);
   assert.doesNotMatch(documentRoot.querySelector('[data-active-request-list]').textContent, /Cambio descartado/);
+});
+
+test('el diálogo de eliminación contiene el foco y restaura el disparador exacto al cancelar', async () => {
+  const dom = createQuoteDom();
+  const { initQuoteForm } = await import('../js/formulario.js');
+  const documentRoot = dom.window.document;
+  const ids = ['request-ana', 'request-beto'];
+
+  initQuoteForm(documentRoot, { createId: () => ids.shift(), now: () => '2026-08-30T10:00:00.000Z' });
+  fillQuote(documentRoot, { nombre: 'Ana' });
+  submit(documentRoot.querySelector('[data-quote-form]'), dom.window);
+  documentRoot.querySelector('[data-create-request]').click();
+  fillQuote(documentRoot, { nombre: 'Beto' });
+  submit(documentRoot.querySelector('[data-quote-form]'), dom.window);
+
+  const trigger = [...documentRoot.querySelectorAll('[data-delete-request]')]
+    .find((button) => button.dataset.requestId === 'request-ana');
+  const dialog = documentRoot.querySelector('#request-delete-dialog');
+  const confirm = dialog.querySelector('[data-confirm-delete]');
+  const cancel = dialog.querySelector('[data-cancel-delete]');
+  trigger.click();
+
+  assert.equal(dialog.hidden, false);
+  assert.match(dialog.querySelector('[data-delete-description]').textContent, /Ana/);
+  assert.equal(documentRoot.activeElement, cancel);
+  assert.equal(documentRoot.querySelector('[data-quote-form]').hasAttribute('inert'), true);
+
+  const tabForward = new dom.window.KeyboardEvent('keydown', { key: 'Tab', bubbles: true, cancelable: true });
+  cancel.dispatchEvent(tabForward);
+  assert.equal(tabForward.defaultPrevented, true);
+  assert.equal(documentRoot.activeElement, confirm);
+  const tabBackward = new dom.window.KeyboardEvent('keydown', {
+    key: 'Tab', shiftKey: true, bubbles: true, cancelable: true,
+  });
+  confirm.dispatchEvent(tabBackward);
+  assert.equal(tabBackward.defaultPrevented, true);
+  assert.equal(documentRoot.activeElement, cancel);
+
+  documentRoot.dispatchEvent(new dom.window.KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
+  assert.equal(dialog.hidden, true);
+  assert.equal(documentRoot.activeElement, trigger);
+  assert.match(documentRoot.querySelector('[data-active-request-list]').textContent, /Beto/);
+  assert.match(documentRoot.querySelector('[data-request-list]').textContent, /Ana/);
+  assert.equal(documentRoot.querySelector('[data-quote-form]').hasAttribute('inert'), false);
+});
+
+test('eliminar una solicitud no activa conserva el detalle activo y anuncia el cambio', async () => {
+  const dom = createQuoteDom();
+  const { initQuoteForm } = await import('../js/formulario.js');
+  const documentRoot = dom.window.document;
+  const ids = ['request-ana', 'request-beto'];
+
+  initQuoteForm(documentRoot, { createId: () => ids.shift(), now: () => '2026-08-30T10:00:00.000Z' });
+  fillQuote(documentRoot, { nombre: 'Ana' });
+  submit(documentRoot.querySelector('[data-quote-form]'), dom.window);
+  documentRoot.querySelector('[data-create-request]').click();
+  fillQuote(documentRoot, { nombre: 'Beto' });
+  submit(documentRoot.querySelector('[data-quote-form]'), dom.window);
+
+  const activeBefore = documentRoot.querySelector('[data-active-request-list]').textContent;
+  documentRoot.querySelector('[data-request-item] [data-delete-request]').click();
+  documentRoot.querySelector('[data-confirm-delete]').click();
+
+  assert.equal(documentRoot.querySelector('[data-active-request-list]').textContent, activeBefore);
+  assert.equal(documentRoot.querySelector('[data-request-history]').hidden, true);
+  const requestsStatus = documentRoot.querySelector('[data-requests-status]');
+  assert.equal(requestsStatus.hidden, false);
+  assert.equal(requestsStatus.textContent, 'Solicitud eliminada. Tus otras solicitudes preparadas no cambiaron.');
+  assert.equal(documentRoot.activeElement, documentRoot.querySelector('[data-active-request]'));
+});
+
+test('eliminar la solicitud activa selecciona la más reciente restante', async () => {
+  const dom = createQuoteDom();
+  const { initQuoteForm } = await import('../js/formulario.js');
+  const documentRoot = dom.window.document;
+  const ids = ['request-ana', 'request-beto'];
+
+  initQuoteForm(documentRoot, { createId: () => ids.shift(), now: () => '2026-08-30T10:00:00.000Z' });
+  fillQuote(documentRoot, { nombre: 'Ana' });
+  submit(documentRoot.querySelector('[data-quote-form]'), dom.window);
+  documentRoot.querySelector('[data-create-request]').click();
+  fillQuote(documentRoot, { nombre: 'Beto' });
+  submit(documentRoot.querySelector('[data-quote-form]'), dom.window);
+
+  documentRoot.querySelector('[data-delete-active]').click();
+  documentRoot.querySelector('[data-confirm-delete]').click();
+
+  assert.match(documentRoot.querySelector('[data-active-request-list]').textContent, /Ana/);
+  assert.equal(documentRoot.querySelector('[data-active-request]').dataset.requestId, undefined);
+  assert.equal(documentRoot.activeElement, documentRoot.querySelector('[data-active-request]'));
+  assert.equal(documentRoot.querySelector('[data-requests-status]').textContent,
+    'Solicitud eliminada. Tus otras solicitudes preparadas no cambiaron.');
+});
+
+test('eliminar la última solicitud entra al formulario vacío y enfoca Nombre', async () => {
+  const dom = createQuoteDom();
+  const { initQuoteForm } = await import('../js/formulario.js');
+  const documentRoot = dom.window.document;
+
+  initQuoteForm(documentRoot, { createId: () => 'request-ana', now: () => '2026-08-30T10:00:00.000Z' });
+  fillQuote(documentRoot, { nombre: 'Ana' });
+  submit(documentRoot.querySelector('[data-quote-form]'), dom.window);
+  documentRoot.querySelector('[data-delete-active]').click();
+  documentRoot.querySelector('[data-confirm-delete]').click();
+
+  assert.equal(documentRoot.querySelector('[data-requests-view]').hidden, true);
+  assert.equal(documentRoot.querySelector('[data-quote-form]').hidden, false);
+  assert.equal(documentRoot.querySelector('[name="nombre"]').value, '');
+  assert.equal(documentRoot.activeElement, documentRoot.querySelector('[name="nombre"]'));
+  assert.equal(documentRoot.querySelector('[data-requests-status]').hidden, false);
+  assert.equal(documentRoot.querySelector('[data-requests-status]').textContent,
+    'Solicitud eliminada. No quedan solicitudes preparadas.');
+});
+
+test('los identificadores de eliminación desconocidos no alteran la vista', async () => {
+  const dom = createQuoteDom();
+  const { initQuoteForm } = await import('../js/formulario.js');
+  const documentRoot = dom.window.document;
+
+  initQuoteForm(documentRoot, { createId: () => 'request-ana', now: () => '2026-08-30T10:00:00.000Z' });
+  fillQuote(documentRoot, { nombre: 'Ana' });
+  submit(documentRoot.querySelector('[data-quote-form]'), dom.window);
+  const requestsView = documentRoot.querySelector('[data-requests-view]');
+  const staleTrigger = documentRoot.createElement('button');
+  staleTrigger.type = 'button';
+  staleTrigger.dataset.deleteRequest = '';
+  staleTrigger.dataset.requestId = 'stale-id';
+  requestsView.append(staleTrigger);
+  const activeBefore = documentRoot.querySelector('[data-active-request-list]').textContent;
+
+  assert.doesNotThrow(() => staleTrigger.click());
+  assert.equal(documentRoot.querySelector('#request-delete-dialog').hidden, true);
+  assert.equal(documentRoot.querySelector('[data-active-request-list]').textContent, activeBefore);
+  assert.equal(documentRoot.querySelector('[data-delete-active]').dataset.requestId, 'request-ana');
 });
 
 test('los mensajes conservan las descripciones existentes al limpiar un error', async () => {
