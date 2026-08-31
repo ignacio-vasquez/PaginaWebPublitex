@@ -8,6 +8,7 @@ const { createUserService } = require('./users/user-service');
 const { createSessionRepository } = require('./auth/session-repository');
 const { createAuthService } = require('./auth/auth-service');
 const { createAuthRouter } = require('./auth/auth-routes');
+const { createAccountRouter } = require('./account/account-routes');
 
 function createApp(options = {}) {
   const app = express();
@@ -39,6 +40,8 @@ function createApp(options = {}) {
     cookieSecure: options.cookieSecure ?? process.env.NODE_ENV === 'production',
     loginLimiter,
   }));
+  app.use('/api/account', createAccountRouter({ authService }));
+  if (options.testRoutes) app.use('/api/test', options.testRoutes);
 
   app.use('/api', (_request, response) => {
     response.status(404).json({ error: 'Recurso no encontrado.' });

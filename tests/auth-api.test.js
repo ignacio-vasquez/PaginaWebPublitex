@@ -199,3 +199,32 @@ test('una sesión expirada deja de autenticar y se elimina del repositorio', asy
     assert.equal(await fixture.sessions.findByTokenHash(tokenHash), null);
   });
 });
+
+test('devuelve el perfil público de la sesión activa', async () => {
+  const { app } = createTestApp();
+  await withServer(app, async (baseUrl) => {
+    const registration = await fetch(`${baseUrl}/api/auth/register`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ name: 'Ana', email: 'ana@example.com', password: 'secreto1' }),
+    });
+    const response = await fetch(`${baseUrl}/api/account/profile`, {
+      headers: { cookie: cookiePair(registration) },
+    });
+    assert.equal(response.status, 200);
+    const body = await response.json();
+    assert.deepEqual(body, {
+      user: { id: 'user-1', name: 'Ana', email: 'ana@example.com', role: 'cliente' },
+    });
+    assert.doesNotMatch(JSON.stringify(body), /password|hash/i);
+  });
+});
+
+test('rechaza el perfil sin una cookie de sesión', async () => {
+  const { app } = createTestApp();
+  await withServer(app, async (baseUrl) => {
+    const response = await fetch(`${baseUrl}/api/account/profile`);
+    assert.equal(response.status, 401);
+    assert.deepEqual(await response.json(), { error: 'Debes iniciar sesión.' });
+  });
+});
