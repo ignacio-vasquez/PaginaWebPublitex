@@ -3,12 +3,11 @@ const BODY_TOO_LARGE = 'La solicitud es demasiado grande.';
 const UNEXPECTED_ERROR = 'Ocurrió un problema inesperado.';
 
 function isMalformedJson(error) {
-  return error && (error.type === 'entity.parse.failed'
-    || (error instanceof SyntaxError && error.status === 400));
+  return error && error.type === 'entity.parse.failed';
 }
 
 function isBodyTooLarge(error) {
-  return error && (error.type === 'entity.too.large' || error.status === 413);
+  return error && error.type === 'entity.too.large';
 }
 
 function getLogger(request) {
@@ -24,7 +23,7 @@ function logUnexpectedError(error, request, status) {
     event: 'http_error',
     status,
     method: request && request.method,
-    path: request && (request.originalUrl || request.url),
+    path: request && request.path,
   };
   try {
     if (logger && typeof logger.error === 'function') logger.error(entry);

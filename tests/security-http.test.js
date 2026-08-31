@@ -62,6 +62,7 @@ test('devuelve 413 en vez de una página HTML para un cuerpo JSON demasiado gran
     });
     assert.equal(response.status, 413);
     assert.match(response.headers.get('content-type'), /^application\/json/);
+    assert.deepEqual(await response.json(), { error: 'La solicitud es demasiado grande.' });
   });
 });
 
@@ -75,6 +76,7 @@ test('devuelve 400 en JSON para un cuerpo malformado', async () => {
     });
     assert.equal(response.status, 400);
     assert.match(response.headers.get('content-type'), /^application\/json/);
+    assert.deepEqual(await response.json(), { error: 'La solicitud JSON no es válida.' });
   });
 });
 
@@ -103,6 +105,65 @@ test('oculta detalles sensibles ante errores inesperados y registra solo metadat
 
   const logged = JSON.stringify(logEntries);
   assert.doesNotMatch(logged, /password|hash|cookie|secreto|publitex_session|stack=interno/i);
+});
+
+test('el log de un error inesperado omite query strings sensibles', async () => {
+  const logEntries = [];
+  const app = createApp({
+    logger: { error(...args) { logEntries.push(args); } },
+    authService: createAuthService({
+      login: async () => { throw new Error('fallo interno'); },
+    }),
+  });
+
+  await withServer(app, async (baseUrl) => {
+    const response = await fetch(`${baseUrl}/api/auth/login?password=secreto&cookie=abc`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ email: 'ana@example.com', password: 'secreto' }),
+    });
+    assert.equal(response.status, 500);
+  });
+
+  assert.equal(logEntries.length, 1);
+  assert.equal(logEntries[0][0].path, '/api/auth/login');
+  assert.doesNotMatch(JSON.stringify(logEntries), /\?|password|cookie|secreto|abc/i);
+});
+
+test('un SyntaxError de aplicación con status 400 sigue siendo un error inesperado', async () => {
+  const app = createApp({
+    authService: createAuthService({
+      login: async () => {
+        const error = new SyntaxError('error interno de aplicación');
+        error.status = 400;
+        throw error;
+      },
+    }),
+  });
+
+  await withServer(app, async (baseUrl) => {
+    const response = await postLogin(baseUrl, { email: 'ana@example.com', password: 'secreto' });
+    assert.equal(response.status, 500);
+    assert.deepEqual(await response.json(), { error: 'Ocurrió un problema inesperado.' });
+  });
+});
+
+test('un error de aplicación con status 413 sin tipo de parser sigue siendo inesperado', async () => {
+  const app = createApp({
+    authService: createAuthService({
+      login: async () => {
+        const error = new Error('error interno de aplicación');
+        error.status = 413;
+        throw error;
+      },
+    }),
+  });
+
+  await withServer(app, async (baseUrl) => {
+    const response = await postLogin(baseUrl, { email: 'ana@example.com', password: 'secreto' });
+    assert.equal(response.status, 500);
+    assert.deepEqual(await response.json(), { error: 'Ocurrió un problema inesperado.' });
+  });
 });
 
 test('mantiene una respuesta JSON uniforme para rutas API inexistentes', async () => {
