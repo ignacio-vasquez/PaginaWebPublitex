@@ -178,7 +178,7 @@ function appendHistoryItem(list, request, fields) {
 
   const actions = documentRoot.createElement('span');
   actions.dataset.requestActions = '';
-  appendButton(documentRoot, actions, 'Ver', 'viewRequest', request.id);
+  appendButton(documentRoot, actions, 'Mostrar como principal', 'viewRequest', request.id);
   appendButton(documentRoot, actions, 'Editar', 'editRequest', request.id);
   appendButton(documentRoot, actions, 'Eliminar', 'deleteRequest', request.id);
   item.append(actions);

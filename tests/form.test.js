@@ -20,7 +20,7 @@ function createQuoteDom() {
       </div>
       <section data-requests-view hidden>
         <article data-active-request tabindex="-1">
-          <h3>Solicitud activa</h3>
+          <h3>Solicitud principal</h3>
           <p><strong>Simulación: estas solicitudes todavía no fueron enviadas a la empresa</strong></p>
           <dl data-active-request-list></dl>
           <button type="button" data-edit-active>Editar</button>
@@ -108,6 +108,8 @@ test('conserva solicitudes anteriores y permite seleccionar una del historial', 
   assert.equal(active.querySelector('strong').textContent, 'Simulación: estas solicitudes todavía no fueron enviadas a la empresa');
   assert.equal(historyItems.length, 1);
   assert.match(historyItems[0].textContent, /Ana/);
+  assert.equal(historyItems[0].querySelector('[data-view-request]').textContent, 'Mostrar como principal');
+  assert.match(loadHomepage(), /<h3>Solicitud principal<\/h3>/);
 
   historyItems[0].querySelector('[data-view-request]').click();
   historyItems = history.querySelectorAll('[data-request-item]');
