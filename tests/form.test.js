@@ -7,8 +7,9 @@ function createQuoteDom() {
   return createDom(`
     <section>
       <div data-quote-form role="form" aria-labelledby="quote-form-title">
-        <h2 id="quote-form-title">Cotización</h2>
+        <h2 id="quote-form-title" data-form-title>Cotización</h2>
         <p><label for="nombre">Nombre</label><input id="nombre" name="nombre"></p>
+        <p><label for="empresa-cliente">Empresa</label><input id="empresa-cliente" name="empresa-cliente"></p>
         <p><label for="telefono">Teléfono</label><input id="telefono" name="telefono"></p>
         <p><label for="correo">Correo</label><input id="correo" name="correo"></p>
         <p><label for="servicio">Tipo de trabajo</label><select id="servicio" name="servicio"><option value="">Selecciona una opción</option><option value="letrero">Letrero luminoso</option></select></p>
@@ -17,13 +18,22 @@ function createQuoteDom() {
         <div class="form-status" data-form-status role="status" aria-live="polite" hidden></div>
         <button type="button" data-submit-quote>Enviar solicitud</button>
       </div>
-      <section class="quote-summary" data-quote-summary aria-labelledby="quote-summary-title" tabindex="-1" hidden>
-        <h3 id="quote-summary-title">Resumen de tu solicitud</h3>
-        <p><strong>Simulación: esta solicitud todavía no fue enviada a la empresa</strong></p>
-        <dl data-summary-list></dl>
-        <button type="button" data-edit-quote>Editar datos</button>
-        <button type="button" data-clear-quote>Crear otra solicitud</button>
+      <section data-requests-view hidden>
+        <div data-requests-status role="status" aria-live="polite"></div>
+        <article data-active-request tabindex="-1">
+          <h3>Solicitud activa</h3>
+          <p><strong>Simulación: estas solicitudes todavía no fueron enviadas a la empresa</strong></p>
+          <dl data-active-request-list></dl>
+          <button type="button" data-edit-active>Editar</button>
+          <button type="button" data-delete-active>Eliminar</button>
+          <button type="button" data-create-request>Crear otra solicitud</button>
+        </article>
+        <section data-request-history aria-labelledby="request-history-title" hidden>
+          <h3 id="request-history-title">Otras solicitudes preparadas</h3>
+          <ul data-request-list></ul>
+        </section>
       </section>
+      <button type="button" data-cancel-form hidden>Cancelar</button>
     </section>
   `);
 }
@@ -35,6 +45,15 @@ function fillValidQuote(documentRoot) {
   documentRoot.querySelector('[name="servicio"]').value = 'letrero';
   documentRoot.querySelector('[name="descripcion"]').value = 'Letrero luminoso de dos metros para una fachada.';
   documentRoot.querySelector('[name="consentimiento"]').checked = true;
+}
+
+function fillQuote(documentRoot, values) {
+  fillValidQuote(documentRoot);
+  for (const [name, value] of Object.entries(values)) {
+    const field = documentRoot.querySelector(`[name="${name}"]`);
+    if (field.type === 'checkbox') field.checked = value;
+    else field.value = value;
+  }
 }
 
 function submit(form, window) {
@@ -54,6 +73,38 @@ test('la validación exige todos los campos obligatorios', async () => {
     'servicio',
     'telefono',
   ]);
+});
+
+test('conserva solicitudes anteriores y permite seleccionar una del historial', async () => {
+  const dom = createQuoteDom();
+  const { initQuoteForm } = await import('../js/formulario.js');
+  const documentRoot = dom.window.document;
+  const ids = ['request-ana', 'request-beto'];
+  const times = ['2026-08-30T10:00:00.000Z', '2026-08-30T11:00:00.000Z'];
+
+  initQuoteForm(documentRoot, {
+    createId: () => ids.shift(),
+    now: () => times.shift(),
+  });
+  fillQuote(documentRoot, { nombre: 'Ana', 'empresa-cliente': 'Taller Sur' });
+  submit(documentRoot.querySelector('[data-quote-form]'), dom.window);
+  documentRoot.querySelector('[data-create-request]').click();
+  fillQuote(documentRoot, { nombre: 'Beto', 'empresa-cliente': 'Rótulos Norte' });
+  submit(documentRoot.querySelector('[data-quote-form]'), dom.window);
+
+  const active = documentRoot.querySelector('[data-active-request]');
+  const history = documentRoot.querySelector('[data-request-history]');
+  let historyItems = history.querySelectorAll('[data-request-item]');
+  assert.match(active.querySelector('[data-active-request-list]').textContent, /Beto/);
+  assert.equal(active.querySelector('strong').textContent, 'Simulación: estas solicitudes todavía no fueron enviadas a la empresa');
+  assert.equal(historyItems.length, 1);
+  assert.match(historyItems[0].textContent, /Ana/);
+
+  historyItems[0].querySelector('[data-view-request]').click();
+  historyItems = history.querySelectorAll('[data-request-item]');
+  assert.match(active.querySelector('[data-active-request-list]').textContent, /Ana/);
+  assert.equal(historyItems.length, 1);
+  assert.match(historyItems[0].textContent, /Beto/);
 });
 
 test('la validación acepta una solicitud completa', async () => {
@@ -101,8 +152,8 @@ test('la inicialización ignora formularios con un contrato incompleto', async (
     '[name="telefono"]',
     '[data-form-status]',
     '[data-submit-quote]',
-    '[data-quote-summary]',
-    '[data-summary-list]',
+    '[data-requests-view]',
+    '[data-active-request-list]',
   ]) {
     const dom = createQuoteDom();
     const documentRoot = dom.window.document;
@@ -126,7 +177,7 @@ test('el envío inválido se cancela, explica los campos y enfoca el primero', a
 
   assert.equal(event.defaultPrevented, true);
   assert.equal(documentRoot.activeElement, documentRoot.querySelector('[name="nombre"]'));
-  for (const field of documentRoot.querySelectorAll('[name]')) {
+  for (const field of documentRoot.querySelectorAll('[name]:not([name="empresa-cliente"])')) {
     assert.equal(field.getAttribute('aria-invalid'), 'true');
     assert.match(field.getAttribute('aria-describedby'), new RegExp(`${field.id}-error`));
     assert.ok(documentRoot.querySelector(`#${field.id}-error`));
@@ -175,14 +226,14 @@ test('el envío válido muestra un resumen de simulación sin enviar el formular
   initQuoteForm(documentRoot);
   fillValidQuote(documentRoot);
   const event = submit(form, dom.window);
-  const summary = documentRoot.querySelector('[data-quote-summary]');
+  const summary = documentRoot.querySelector('[data-requests-view]');
 
   assert.equal(event.defaultPrevented, true);
   assert.equal(form.hidden, true);
   assert.equal(summary.hidden, false);
-  assert.equal(summary.querySelector('strong').textContent, 'Simulación: esta solicitud todavía no fue enviada a la empresa');
-  assert.match(summary.querySelector('[data-summary-list]').textContent, /Ignacio/);
-  assert.equal(documentRoot.activeElement, summary);
+  assert.equal(summary.querySelector('strong').textContent, 'Simulación: estas solicitudes todavía no fueron enviadas a la empresa');
+  assert.match(summary.querySelector('[data-active-request-list]').textContent, /Ignacio/);
+  assert.equal(documentRoot.activeElement, summary.querySelector('[data-active-request]'));
   assert.equal(dom.window.localStorage.length, 0);
 });
 
@@ -195,10 +246,10 @@ test('Editar datos restaura el formulario y enfoca su primer campo', async () =>
   initQuoteForm(documentRoot);
   fillValidQuote(documentRoot);
   submit(form, dom.window);
-  documentRoot.querySelector('[data-edit-quote]').click();
+  documentRoot.querySelector('[data-edit-active]').click();
 
   assert.equal(form.hidden, false);
-  assert.equal(documentRoot.querySelector('[data-quote-summary]').hidden, true);
+  assert.equal(documentRoot.querySelector('[data-requests-view]').hidden, true);
   assert.equal(documentRoot.activeElement, documentRoot.querySelector('[name="nombre"]'));
 });
 
@@ -210,14 +261,64 @@ test('Crear otra solicitud reinicia el flujo y enfoca el primer campo', async ()
   initQuoteForm(documentRoot);
   fillValidQuote(documentRoot);
   submit(form, dom.window);
-  documentRoot.querySelector('[data-clear-quote]').click();
+  documentRoot.querySelector('[data-create-request]').click();
 
   assert.equal(form.hidden, false);
-  assert.equal(documentRoot.querySelector('[data-quote-summary]').hidden, true);
+  assert.equal(documentRoot.querySelector('[data-requests-view]').hidden, true);
+  assert.equal(documentRoot.querySelector('[data-cancel-form]').hidden, false);
   assert.equal(documentRoot.querySelector('[name="nombre"]').value, '');
   assert.equal(documentRoot.querySelector('[name="consentimiento"]').checked, false);
   assert.equal(documentRoot.activeElement, documentRoot.querySelector('[name="nombre"]'));
-  assert.match(loadHomepage(), /data-clear-quote>Crear otra solicitud<\/button>/);
+  assert.match(loadHomepage(), /data-create-request>Crear otra solicitud<\/button>/);
+});
+
+test('editar una solicitud del historial conserva aislada la otra solicitud', async () => {
+  const dom = createQuoteDom();
+  const { initQuoteForm } = await import('../js/formulario.js');
+  const documentRoot = dom.window.document;
+  const ids = ['request-ana', 'request-beto'];
+
+  initQuoteForm(documentRoot, { createId: () => ids.shift(), now: () => '2026-08-30T10:00:00.000Z' });
+  fillQuote(documentRoot, { nombre: 'Ana', 'empresa-cliente': 'Taller Sur' });
+  submit(documentRoot.querySelector('[data-quote-form]'), dom.window);
+  documentRoot.querySelector('[data-create-request]').click();
+  fillQuote(documentRoot, { nombre: 'Beto', 'empresa-cliente': 'Rótulos Norte' });
+  submit(documentRoot.querySelector('[data-quote-form]'), dom.window);
+
+  const anaItem = documentRoot.querySelector('[data-request-item]');
+  const anaId = anaItem.querySelector('[data-view-request]').dataset.requestId;
+  anaItem.querySelector('[data-edit-request]').click();
+  assert.equal(documentRoot.querySelector('[name="nombre"]').value, 'Ana');
+  assert.equal(documentRoot.querySelector('[name="empresa-cliente"]').value, 'Taller Sur');
+  documentRoot.querySelector('[name="nombre"]').value = 'Ana Editada';
+  submit(documentRoot.querySelector('[data-quote-form]'), dom.window);
+
+  const active = documentRoot.querySelector('[data-active-request-list]');
+  assert.match(active.textContent, /Ana Editada/);
+  assert.match(documentRoot.querySelector('[data-request-item]').textContent, /Beto/);
+  assert.equal(documentRoot.querySelector('[data-edit-active]').dataset.requestId, anaId);
+});
+
+test('cancelar una edición descarta cambios y restaura la solicitud activa anterior', async () => {
+  const dom = createQuoteDom();
+  const { initQuoteForm } = await import('../js/formulario.js');
+  const documentRoot = dom.window.document;
+  const ids = ['request-ana', 'request-beto'];
+
+  initQuoteForm(documentRoot, { createId: () => ids.shift(), now: () => '2026-08-30T10:00:00.000Z' });
+  fillQuote(documentRoot, { nombre: 'Ana' });
+  submit(documentRoot.querySelector('[data-quote-form]'), dom.window);
+  documentRoot.querySelector('[data-create-request]').click();
+  fillQuote(documentRoot, { nombre: 'Beto' });
+  submit(documentRoot.querySelector('[data-quote-form]'), dom.window);
+
+  documentRoot.querySelector('[data-request-item] [data-edit-request]').click();
+  documentRoot.querySelector('[name="nombre"]').value = 'Cambio descartado';
+  documentRoot.querySelector('[data-cancel-form]').click();
+
+  assert.match(documentRoot.querySelector('[data-active-request-list]').textContent, /Beto/);
+  assert.match(documentRoot.querySelector('[data-request-item]').textContent, /Ana/);
+  assert.doesNotMatch(documentRoot.querySelector('[data-active-request-list]').textContent, /Cambio descartado/);
 });
 
 test('los mensajes conservan las descripciones existentes al limpiar un error', async () => {

@@ -107,7 +107,7 @@
       </section>
 
       <section id="cotizacion" aria-labelledby="titulo-cotizacion">
-        <h2 id="titulo-cotizacion">Cuéntanos sobre tu proyecto</h2>
+        <h2 id="titulo-cotizacion" data-form-title>Cuéntanos sobre tu proyecto</h2>
         <p>Indica qué necesitas. La empresa revisará la información antes de contactarte.</p>
         <div data-quote-form role="form" aria-labelledby="titulo-cotizacion">
           <p><label for="nombre">Nombre</label><input id="nombre" name="nombre" autocomplete="name" required></p>
@@ -129,13 +129,22 @@
           <div class="form-status" data-form-status role="status" aria-live="polite" hidden></div>
           <button type="button" data-submit-quote>Enviar solicitud</button>
         </div>
-        <section class="quote-summary" data-quote-summary aria-labelledby="quote-summary-title" tabindex="-1" hidden>
-          <h3 id="quote-summary-title">Resumen de tu solicitud</h3>
-          <p><strong>Simulación: esta solicitud todavía no fue enviada a la empresa</strong></p>
-          <dl data-summary-list></dl>
-          <button type="button" data-edit-quote>Editar datos</button>
-          <button type="button" data-clear-quote>Crear otra solicitud</button>
+        <section data-requests-view hidden>
+          <div data-requests-status role="status" aria-live="polite"></div>
+          <article data-active-request tabindex="-1">
+            <h3>Solicitud activa</h3>
+            <p><strong>Simulación: estas solicitudes todavía no fueron enviadas a la empresa</strong></p>
+            <dl data-active-request-list></dl>
+            <button type="button" data-edit-active>Editar</button>
+            <button type="button" data-delete-active>Eliminar</button>
+            <button type="button" data-create-request>Crear otra solicitud</button>
+          </article>
+          <section data-request-history aria-labelledby="request-history-title" hidden>
+            <h3 id="request-history-title">Otras solicitudes preparadas</h3>
+            <ul data-request-list></ul>
+          </section>
         </section>
+        <button type="button" data-cancel-form hidden>Cancelar</button>
       </section>
 
       <section id="contacto" aria-labelledby="titulo-contacto">

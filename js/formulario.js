@@ -1,8 +1,27 @@
+import {
+  addRequest,
+  createRequestState,
+  getActiveRequest,
+  getOtherRequests,
+  selectRequest,
+  updateRequest,
+} from './solicitudes.js';
 import { clearFieldError, setFieldError, showStatus } from './mensajes.js';
 
-const fieldNames = ['nombre', 'telefono', 'correo', 'servicio', 'descripcion', 'consentimiento'];
+const requiredFieldNames = ['nombre', 'telefono', 'correo', 'servicio', 'descripcion', 'consentimiento'];
+const fieldNames = ['nombre', 'empresa', 'telefono', 'correo', 'servicio', 'descripcion', 'consentimiento'];
+const fieldSelectors = {
+  nombre: '[name="nombre"]',
+  empresa: '[name="empresa-cliente"]',
+  telefono: '[name="telefono"]',
+  correo: '[name="correo"]',
+  servicio: '[name="servicio"]',
+  descripcion: '[name="descripcion"]',
+  consentimiento: '[name="consentimiento"]',
+};
 const summaryLabels = {
   nombre: 'Nombre',
+  empresa: 'Empresa',
   telefono: 'Teléfono',
   correo: 'Correo',
   servicio: 'Tipo de trabajo',
@@ -61,7 +80,9 @@ function collectQuoteValues(fields) {
 
   for (const name of fieldNames) {
     const field = fields[name];
-    if (field.type === 'checkbox') {
+    if (!field) {
+      values[name] = '';
+    } else if (field.type === 'checkbox') {
       values[name] = field.checked;
     } else {
       values[name] = field.value.trim();
@@ -71,31 +92,16 @@ function collectQuoteValues(fields) {
   return values;
 }
 
-function renderSummary(summaryList, values, fields) {
-  summaryList.replaceChildren();
-
-  for (const name of fieldNames) {
-    const term = summaryList.ownerDocument.createElement('dt');
-    const detail = summaryList.ownerDocument.createElement('dd');
-    term.textContent = summaryLabels[name];
-    detail.textContent = name === 'consentimiento'
-      ? 'Autorizado'
-      : name === 'servicio'
-        ? fields[name].selectedOptions[0].textContent
-        : values[name];
-    summaryList.append(term, detail);
-  }
-}
-
 function clearFormErrors(fields) {
-  for (const name of fieldNames) {
+  for (const name of requiredFieldNames) {
     clearFieldError(fields[name]);
   }
 }
 
 function updateFieldError(fields, field) {
   const errors = validateQuote(collectQuoteValues(fields));
-  const message = errors[field.name];
+  const name = field.name === 'empresa-cliente' ? 'empresa' : field.name;
+  const message = errors[name];
 
   if (message) {
     setFieldError(field, message);
@@ -117,25 +123,175 @@ function resetQuoteFields(container) {
   }
 }
 
-export function initQuoteForm(documentRoot) {
+function selectedServiceLabel(field, value) {
+  const option = [...field.options].find((candidate) => candidate.value === value);
+  return option?.textContent || value;
+}
+
+function displayValue(name, request, fields) {
+  if (name === 'consentimiento') return request.consentimiento === true ? 'Autorizado' : 'No autorizado';
+  if (name === 'servicio') return selectedServiceLabel(fields.servicio, request.servicio);
+  return request[name] || '';
+}
+
+function appendRequestDetails(list, request, fields) {
+  list.replaceChildren();
+
+  for (const name of fieldNames) {
+    const term = list.ownerDocument.createElement('dt');
+    const detail = list.ownerDocument.createElement('dd');
+    term.textContent = summaryLabels[name];
+    detail.textContent = displayValue(name, request, fields);
+    list.append(term, detail);
+  }
+}
+
+function appendButton(documentRoot, parent, label, attribute, requestId) {
+  const button = documentRoot.createElement('button');
+  button.type = 'button';
+  button.dataset[attribute] = '';
+  button.dataset.requestId = requestId;
+  button.textContent = label;
+  parent.append(button);
+  return button;
+}
+
+function appendHistoryItem(list, request, fields) {
+  const documentRoot = list.ownerDocument;
+  const item = documentRoot.createElement('li');
+  item.dataset.requestItem = '';
+
+  const content = documentRoot.createElement('span');
+  content.textContent = `${request.nombre} — ${displayValue('servicio', request, fields)} — ${request.createdAt}`;
+  item.append(content);
+
+  const actions = documentRoot.createElement('span');
+  actions.dataset.requestActions = '';
+  appendButton(documentRoot, actions, 'Ver', 'viewRequest', request.id);
+  appendButton(documentRoot, actions, 'Editar', 'editRequest', request.id);
+  appendButton(documentRoot, actions, 'Eliminar', 'deleteRequest', request.id);
+  item.append(actions);
+  list.append(item);
+}
+
+export function initQuoteForm(documentRoot = document, options = {}) {
   const form = documentRoot.querySelector('[data-quote-form]');
   if (!form) return;
 
-  const fields = Object.fromEntries(fieldNames.map((name) => [name, form.querySelector(`[name="${name}"]`)]));
+  const fields = Object.fromEntries(fieldNames.map((name) => [
+    name,
+    form.querySelector(fieldSelectors[name]),
+  ]));
   const status = form.querySelector('[data-form-status]');
   const submitButton = form.querySelector('[data-submit-quote]');
-  const summary = documentRoot.querySelector('[data-quote-summary]');
-  const summaryList = summary?.querySelector('[data-summary-list]');
+  const requestsView = documentRoot.querySelector('[data-requests-view]');
+  const activeRequest = documentRoot.querySelector('[data-active-request]');
+  const activeRequestList = activeRequest?.querySelector('[data-active-request-list]');
+  const history = documentRoot.querySelector('[data-request-history]');
+  const requestList = history?.querySelector('[data-request-list]');
+  const requestsStatus = requestsView?.querySelector('[data-requests-status]');
+  const cancelButton = documentRoot.querySelector('[data-cancel-form]');
+  const formTitle = form.querySelector('[data-form-title]');
 
-  if (Object.values(fields).some((field) => !field || typeof field.addEventListener !== 'function')
-    || !status || !submitButton || !summary || !summaryList) return;
+  if (Object.values(fields).some((field, index) => !field && requiredFieldNames.includes(fieldNames[index]))
+    || !status || !submitButton || !requestsView || !activeRequest || !activeRequestList
+    || !history || !requestList || !requestsStatus || !cancelButton) return;
 
   const firstField = fields.nombre;
+  const createId = options.createId ?? (() => globalThis.crypto.randomUUID());
+  const now = options.now ?? (() => new Date().toISOString());
+  let state = createRequestState();
+  let editingId = null;
 
-  for (const name of fieldNames) {
+  function setCreateMode() {
+    editingId = null;
+    if (formTitle) formTitle.textContent = 'Crear solicitud';
+    submitButton.textContent = 'Enviar solicitud';
+  }
+
+  function setEditMode() {
+    if (formTitle) formTitle.textContent = 'Editar solicitud';
+    submitButton.textContent = 'Guardar cambios';
+  }
+
+  function renderRequests() {
+    const active = getActiveRequest(state);
+    if (!active) {
+      requestsView.hidden = true;
+      history.hidden = true;
+      activeRequestList.replaceChildren();
+      requestList.replaceChildren();
+      return;
+    }
+
+    appendRequestDetails(activeRequestList, active, fields);
+    const activeEdit = activeRequest.querySelector('[data-edit-active]');
+    const activeDelete = activeRequest.querySelector('[data-delete-active]');
+    if (activeEdit) activeEdit.dataset.requestId = active.id;
+    if (activeDelete) activeDelete.dataset.requestId = active.id;
+
+    requestList.replaceChildren();
+    const others = getOtherRequests(state);
+    for (const request of others) appendHistoryItem(requestList, request, fields);
+    history.hidden = others.length === 0;
+    requestsView.hidden = false;
+  }
+
+  function focusActive() {
+    activeRequest.focus();
+  }
+
+  function restoreActiveView() {
+    setCreateMode();
+    resetQuoteFields(form);
+    clearFormErrors(fields);
+    status.hidden = true;
+    form.hidden = true;
+    cancelButton.hidden = true;
+    renderRequests();
+    if (getActiveRequest(state)) focusActive();
+  }
+
+  function beginCreate() {
+    setCreateMode();
+    resetQuoteFields(form);
+    clearFormErrors(fields);
+    status.hidden = true;
+    requestsView.hidden = true;
+    form.hidden = false;
+    cancelButton.hidden = false;
+    firstField.focus();
+  }
+
+  function beginEdit(id) {
+    const request = state.requests.find((candidate) => candidate.id === id);
+    if (!request) return;
+
+    editingId = id;
+    setEditMode();
+    for (const name of fieldNames) {
+      const field = fields[name];
+      if (!field) continue;
+      if (field.type === 'checkbox') field.checked = request[name] === true;
+      else field.value = request[name] || '';
+    }
+    clearFormErrors(fields);
+    status.hidden = true;
+    requestsView.hidden = true;
+    form.hidden = false;
+    cancelButton.hidden = false;
+    firstField.focus();
+  }
+
+  function announce(message) {
+    showStatus(requestsStatus, message, 'success');
+  }
+
+  for (const name of requiredFieldNames) {
     const field = fields[name];
     field.addEventListener(field.type === 'checkbox' ? 'change' : 'input', () => updateFieldError(fields, field));
   }
+  fields.empresa?.addEventListener('input', () => updateFieldError(fields, fields.empresa));
 
   submitButton.addEventListener('click', (event) => {
     event.preventDefault();
@@ -143,7 +299,7 @@ export function initQuoteForm(documentRoot) {
     const errors = validateQuote(values);
     const invalidFields = [];
 
-    for (const name of fieldNames) {
+    for (const name of requiredFieldNames) {
       const field = fields[name];
       if (errors[name]) {
         setFieldError(field, errors[name]);
@@ -159,26 +315,50 @@ export function initQuoteForm(documentRoot) {
       return;
     }
 
+    if (editingId) {
+      state = updateRequest(state, editingId, values);
+      announce('Solicitud actualizada.');
+    } else {
+      state = addRequest(state, values, { id: createId(), createdAt: now() });
+      announce('Solicitud creada.');
+    }
+
+    editingId = null;
+    setCreateMode();
     status.hidden = true;
-    renderSummary(summaryList, values, fields);
     form.hidden = true;
-    summary.hidden = false;
-    summary.focus();
+    cancelButton.hidden = true;
+    renderRequests();
+    focusActive();
   });
 
-  summary.querySelector('[data-edit-quote]')?.addEventListener('click', () => {
-    summary.hidden = true;
-    form.hidden = false;
-    firstField.focus();
+  cancelButton.addEventListener('click', () => {
+    restoreActiveView();
   });
 
-  summary.querySelector('[data-clear-quote]')?.addEventListener('click', () => {
-    resetQuoteFields(form);
-    clearFormErrors(fields);
-    status.hidden = true;
-    summaryList.replaceChildren();
-    summary.hidden = true;
-    form.hidden = false;
-    firstField.focus();
+  activeRequest.querySelector('[data-edit-active]')?.addEventListener('click', () => {
+    beginEdit(activeRequest.querySelector('[data-edit-active]').dataset.requestId);
+  });
+  requestsView.addEventListener('click', (event) => {
+    const target = event.target;
+    if (!target || typeof target.closest !== 'function') return;
+
+    const viewButton = target.closest('[data-view-request]');
+    if (viewButton) {
+      state = selectRequest(state, viewButton.dataset.requestId);
+      renderRequests();
+      announce('Solicitud seleccionada.');
+      focusActive();
+      return;
+    }
+
+    const editButton = target.closest('[data-edit-request]');
+    if (editButton) {
+      beginEdit(editButton.dataset.requestId);
+      return;
+    }
+
+    const createButton = target.closest('[data-create-request]');
+    if (createButton) beginCreate();
   });
 }
