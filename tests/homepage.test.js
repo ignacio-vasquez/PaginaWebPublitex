@@ -24,6 +24,11 @@ test('ofrece navegación interna hacia todas las secciones públicas', () => {
   }
 });
 
+test('ofrece un enlace de sesión accesible desde el encabezado', () => {
+  const html = loadHomepage();
+  assert.match(html, /<a\b[^>]*data-session-link[^>]*href="acceso\.html"[^>]*>\s*Ingresar\s*<\/a>/i);
+});
+
 test('presenta el servicio y dos acciones principales', () => {
   const html = loadHomepage();
 

@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Accede a tu cuenta de Publitexweb.">
+    <link rel="stylesheet" href="css/styles.css">
+    <title>Acceso y cuenta | Publitexweb</title>
+  </head>
+  <body class="access-page">
+    <header>
+      <p><a href="index.html#inicio" aria-label="Publitexweb, ir al inicio">Publitexweb</a></p>
+      <a data-session-link href="acceso.html">Ingresar</a>
+      <a href="index.html#cotizacion">Cotizar proyecto</a>
+    </header>
+
+    <main>
+      <section data-auth-shell aria-labelledby="access-title">
+        <div data-auth-view>
+          <p class="eyebrow">Tu cuenta</p>
+          <h1 id="access-title">¿Ya eres cliente o quieres gestionar tus proyectos?</h1>
+          <p>Inicia sesión o crea una cuenta para consultar tus cotizaciones, seguir tus trabajos y mantener tus datos organizados.</p>
+
+          <div class="auth-forms">
+            <form data-login-form aria-labelledby="login-title">
+              <h2 id="login-title">Iniciar sesión</h2>
+              <p>
+                <label for="login-email">Correo electrónico</label>
+                <input id="login-email" name="login-email" type="email" autocomplete="email" required>
+              </p>
+              <p>
+                <label for="login-password">Contraseña</label>
+                <input id="login-password" name="login-password" type="password" autocomplete="current-password" required>
+              </p>
+              <button type="submit">Ingresar</button>
+            </form>
+
+            <form data-register-form aria-labelledby="register-title">
+              <h2 id="register-title">Crear cuenta</h2>
+              <p>
+                <label for="register-name">Nombre</label>
+                <input id="register-name" name="register-name" autocomplete="name" required>
+              </p>
+              <p>
+                <label for="register-email">Correo electrónico</label>
+                <input id="register-email" name="register-email" type="email" autocomplete="email" required>
+              </p>
+              <p>
+                <label for="register-password">Contraseña</label>
+                <input id="register-password" name="register-password" type="password" autocomplete="new-password" minlength="8" required>
+              </p>
+              <button type="submit">Crear cuenta</button>
+            </form>
+          </div>
+        </div>
+
+        <div data-account-view hidden aria-labelledby="account-title">
+          <p class="eyebrow">Tu cuenta</p>
+          <h1 id="account-title">Mi cuenta</h1>
+          <p>Estos son los datos asociados a tu cuenta.</p>
+          <dl class="account-details">
+            <dt>Nombre</dt>
+            <dd data-account-name></dd>
+            <dt>Correo electrónico</dt>
+            <dd data-account-email></dd>
+            <dt>Tipo de cuenta</dt>
+            <dd data-account-role></dd>
+          </dl>
+          <button type="button" data-logout>Cerrar sesión</button>
+        </div>
+
+        <div data-auth-status role="status" aria-live="polite" tabindex="-1" hidden></div>
+      </section>
+    </main>
+
+    <footer>
+      <p><strong>Publitexweb</strong> — Publicidad visual</p>
+      <nav aria-label="Navegación complementaria">
+        <a href="index.html#inicio">Volver al inicio</a>
+        <a href="index.html#cotizacion">Cotizar proyecto</a>
+      </nav>
+    </footer>
+    <script type="module" src="js/app.js"></script>
+  </body>
+</html>
