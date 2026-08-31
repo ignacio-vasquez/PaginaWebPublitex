@@ -191,7 +191,9 @@ export function initQuoteForm(documentRoot = document, options = {}) {
   const requestList = history?.querySelector('[data-request-list]');
   const requestsStatus = requestsView?.querySelector('[data-requests-status]');
   const cancelButton = documentRoot.querySelector('[data-cancel-form]');
-  const formTitle = form.querySelector('[data-form-title]');
+  const formTitle = form.querySelector('[data-form-title]')
+    || form.parentElement?.querySelector('[data-form-title]')
+    || documentRoot.querySelector('[data-form-title]');
 
   if (Object.values(fields).some((field, index) => !field && requiredFieldNames.includes(fieldNames[index]))
     || !status || !submitButton || !requestsView || !activeRequest || !activeRequestList

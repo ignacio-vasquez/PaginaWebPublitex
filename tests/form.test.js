@@ -272,6 +272,25 @@ test('Crear otra solicitud reinicia el flujo y enfoca el primer campo', async ()
   assert.match(loadHomepage(), /data-create-request>Crear otra solicitud<\/button>/);
 });
 
+test('actualiza el título de modo en el contrato público al crear y editar', async () => {
+  const dom = createDom(loadHomepage());
+  const { initQuoteForm } = await import('../js/formulario.js');
+  const documentRoot = dom.window.document;
+  const title = documentRoot.querySelector('[data-form-title]');
+  const ids = ['request-public'];
+
+  initQuoteForm(documentRoot, {
+    createId: () => ids.shift(),
+    now: () => '2026-08-30T10:00:00.000Z',
+  });
+  fillValidQuote(documentRoot);
+  submit(documentRoot.querySelector('[data-quote-form]'), dom.window);
+  assert.equal(title.textContent, 'Crear solicitud');
+
+  documentRoot.querySelector('[data-edit-active]').click();
+  assert.equal(title.textContent, 'Editar solicitud');
+});
+
 test('editar una solicitud del historial conserva aislada la otra solicitud', async () => {
   const dom = createQuoteDom();
   const { initQuoteForm } = await import('../js/formulario.js');

@@ -45,3 +45,19 @@ The underlying file contains 17 passing form subtests, including collection/sele
 - Optional `empresa-cliente` is collected as `empresa`, preserved in each request, shown in details, and excluded from validation.
 - Delete controls are present in the Task 2 contract but intentionally have no behavior yet; accessible deletion is Task 3 scope.
 - No browser/manual visual verification was performed because responsive styling and deletion dialog belong to later tasks.
+
+## Round 1 fix — public mode title
+
+### RED
+
+Added a regression using `createDom(loadHomepage())`, which exercises the production HTML where `[data-form-title]` is on the quote-section heading outside `[data-quote-form]`. `node tests/form.test.js` failed the new test: after creation the title remained `Cuéntanos sobre tu proyecto` instead of `Crear solicitud`.
+
+### GREEN
+
+Updated `initQuoteForm` to resolve `[data-form-title]` from the form, its parent quote section, or the document fallback. The test now verifies both creation mode (`Crear solicitud`) and edit mode (`Editar solicitud`) against the public homepage contract.
+
+Verification after the fix:
+
+- `node --test tests/form.test.js` — PASS.
+- `npm test` — PASS (7/7 test files).
+- `git diff --check` — PASS.
