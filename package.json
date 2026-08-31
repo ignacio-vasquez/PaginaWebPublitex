@@ -4,9 +4,16 @@
   "private": true,
   "description": "Sitio y sistema de gestión para una empresa de publicidad visual",
   "scripts": {
-    "test": "node --test"
+    "test": "node --test",
+    "start": "node server/server.js",
+    "dev": "node --watch server/server.js"
   },
   "devDependencies": {
     "jsdom": "26.1.0"
+  },
+  "dependencies": {
+    "bcryptjs": "^3.0.3",
+    "express": "^5.2.1",
+    "express-rate-limit": "^8.7.0"
   }
 }
