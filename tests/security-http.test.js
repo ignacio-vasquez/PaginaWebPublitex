@@ -1,6 +1,8 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const express = require('express');
 const { createApp } = require('../server/app');
+const { requireUser } = require('../server/auth/authorization');
 
 async function withServer(app, callback) {
   const server = app.listen(0, '127.0.0.1');
@@ -163,6 +165,57 @@ test('un error de aplicación con status 413 sin tipo de parser sigue siendo ine
     const response = await postLogin(baseUrl, { email: 'ana@example.com', password: 'secreto' });
     assert.equal(response.status, 500);
     assert.deepEqual(await response.json(), { error: 'Ocurrió un problema inesperado.' });
+  });
+});
+
+test('una excepción al consultar sesión responde 500 seguro y registra solo metadatos seguros', async () => {
+  const logEntries = [];
+  const app = createApp({
+    logger: { error(...args) { logEntries.push(args); } },
+    authService: {
+      ...createAuthService(),
+      getSessionUser: async () => {
+        throw new Error('password=secreto cookie=publitex_session=token');
+      },
+    },
+  });
+
+  await withServer(app, async (baseUrl) => {
+    const response = await fetch(`${baseUrl}/api/auth/session?password=secreto`, {
+      headers: { cookie: 'publitex_session=token' },
+    });
+    assert.equal(response.status, 500);
+    assert.deepEqual(await response.json(), { error: 'Ocurrió un problema inesperado.' });
+  });
+
+  assert.equal(logEntries.length, 1);
+  assert.deepEqual(logEntries[0][0], {
+    event: 'http_error', status: 500, method: 'GET', path: '/api/auth/session',
+  });
+});
+
+test('un error downstream tras requireUser llega al manejador de errores, nunca a 401', async () => {
+  const logEntries = [];
+  const authService = {
+    ...createAuthService(),
+    getSessionUser: async () => ({ id: 'user-1', role: 'cliente' }),
+  };
+  const testRoutes = express.Router();
+  testRoutes.get('/downstream-error', requireUser(authService), (_request, _response, next) => {
+    next(new Error('fallo downstream password=secreto'));
+  });
+  const app = createApp({ logger: { error(...args) { logEntries.push(args); } }, authService, testRoutes });
+
+  await withServer(app, async (baseUrl) => {
+    const response = await fetch(`${baseUrl}/api/test/downstream-error`, {
+      headers: { cookie: 'publitex_session=token' },
+    });
+    assert.equal(response.status, 500);
+    assert.deepEqual(await response.json(), { error: 'Ocurrió un problema inesperado.' });
+  });
+
+  assert.deepEqual(logEntries[0][0], {
+    event: 'http_error', status: 500, method: 'GET', path: '/api/test/downstream-error',
   });
 });
 

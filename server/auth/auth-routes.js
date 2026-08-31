@@ -71,12 +71,12 @@ function createAuthRouter({ authService, cookieSecure = false, loginLimiter } = 
   });
   router.post('/login', ...loginHandlers);
 
-  router.get('/session', async (request, response) => {
+  router.get('/session', async (request, response, next) => {
     try {
       const user = await authService.getSessionUser(getSessionToken(request));
       return response.status(200).json(user ? { authenticated: true, user } : { authenticated: false });
-    } catch {
-      return response.status(200).json({ authenticated: false });
+    } catch (error) {
+      return next(error);
     }
   });
 

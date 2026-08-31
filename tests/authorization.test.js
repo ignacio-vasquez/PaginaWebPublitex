@@ -53,6 +53,23 @@ test('requireRole rechaza una solicitud sin usuario autenticado', async () => {
   assert.deepEqual(response.body, { error: 'No tienes permiso para realizar esta acción.' });
 });
 
+test('requireUser no convierte un error downstream de next en un 401', async () => {
+  const request = { headers: {} };
+  const response = fakeResponse();
+  const downstreamError = new Error('fallo downstream');
+
+  await assert.rejects(
+    requireUser({ getSessionUser: async () => ({ id: 'user-1', role: 'cliente' }) })(
+      request,
+      response,
+      () => { throw downstreamError; },
+    ),
+    downstreamError,
+  );
+  assert.equal(response.statusCode, 200);
+  assert.equal(response.body, null);
+});
+
 async function withServer(app, callback) {
   const server = app.listen(0, '127.0.0.1');
   await new Promise((resolve) => server.once('listening', resolve));

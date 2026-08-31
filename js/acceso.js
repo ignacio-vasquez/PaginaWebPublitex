@@ -39,6 +39,13 @@ export function initAccessPage(documentRoot = document, api = globalThis.fetch) 
   if (!authView || !accountView || !status || !loginForm || !registerForm || !logoutButton
     || typeof api !== 'function') return;
 
+  const sessionLink = documentRoot.querySelector('[data-session-link]');
+  let sessionStateVersion = 0;
+
+  const showSessionLink = (authenticated) => {
+    if (sessionLink) sessionLink.textContent = authenticated ? 'Mi cuenta' : 'Ingresar';
+  };
+
   const showStatus = (message, kind = 'info') => {
     status.textContent = message;
     status.dataset.statusKind = kind;
@@ -74,7 +81,9 @@ export function initAccessPage(documentRoot = document, api = globalThis.fetch) 
         showStatus(body.error || 'No pudimos completar la solicitud. Inténtalo nuevamente.', 'error');
         return;
       }
+      sessionStateVersion += 1;
       showAccount(body.user);
+      showSessionLink(true);
       showStatus(successMessage, 'success');
     } catch {
       showStatus('No pudimos conectar con el servicio. Inténtalo nuevamente.', 'error');
@@ -113,7 +122,9 @@ export function initAccessPage(documentRoot = document, api = globalThis.fetch) 
         showStatus(body.error || 'No pudimos cerrar la sesión.', 'error');
         return;
       }
+      sessionStateVersion += 1;
       showAuth();
+      showSessionLink(false);
       showStatus('Sesión cerrada.', 'success');
     } catch {
       showStatus('No pudimos conectar con el servicio. Inténtalo nuevamente.', 'error');
@@ -121,10 +132,15 @@ export function initAccessPage(documentRoot = document, api = globalThis.fetch) 
   });
 
   void (async () => {
+    const initialSessionVersion = sessionStateVersion;
     try {
       const response = await api('/api/auth/session', { credentials: 'same-origin' });
       const body = await readBody(response);
-      if (isSuccessful(response) && body.authenticated && body.user) showAccount(body.user);
+      if (initialSessionVersion !== sessionStateVersion) return;
+      if (isSuccessful(response) && body.authenticated && body.user) {
+        showAccount(body.user);
+        showSessionLink(true);
+      }
     } catch {
       // La página sigue disponible para iniciar sesión si la comprobación no responde.
     }

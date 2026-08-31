@@ -2,6 +2,27 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const { createDom } = require('./dom');
 
+test('la página de acceso realiza una sola consulta inicial de sesión', async () => {
+  const dom = createDom(require('node:fs').readFileSync(require('node:path').join(__dirname, '..', 'acceso.html'), 'utf8'));
+  const originalDocument = global.document;
+  const originalFetch = global.fetch;
+  let sessionRequests = 0;
+  global.document = dom.window.document;
+  global.fetch = async (url) => {
+    if (url === '/api/auth/session') sessionRequests += 1;
+    return new Response(JSON.stringify({ authenticated: false }), { status: 200 });
+  };
+
+  try {
+    await import(`../js/app.js?access-session-${Date.now()}`);
+    await new Promise(setImmediate);
+    assert.equal(sessionRequests, 1);
+  } finally {
+    global.document = originalDocument;
+    global.fetch = originalFetch;
+  }
+});
+
 test('cambia Ingresar a Mi cuenta solo con una sesión autenticada', async () => {
   const { initSessionNavigation } = await import('../js/sesion-navegacion.js');
   const authenticatedDom = createDom('<a data-session-link href="acceso.html">Ingresar</a>');

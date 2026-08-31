@@ -6,14 +6,15 @@ function requireUser(authService) {
   }
 
   return async function authenticatedUser(request, response, next) {
+    let user;
     try {
-      const user = await authService.getSessionUser(getSessionToken(request));
-      if (!user) return response.status(401).json({ error: 'Debes iniciar sesión.' });
-      request.user = user;
-      return next();
-    } catch {
-      return response.status(401).json({ error: 'Debes iniciar sesión.' });
+      user = await authService.getSessionUser(getSessionToken(request));
+    } catch (error) {
+      return next(error);
     }
+    if (!user) return response.status(401).json({ error: 'Debes iniciar sesión.' });
+    request.user = user;
+    return next();
   };
 }
 

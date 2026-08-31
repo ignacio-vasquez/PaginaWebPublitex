@@ -11,7 +11,7 @@ export function initApp(documentRoot = document) {
   initPortfolio(documentRoot);
   initQuoteForm(documentRoot);
   initAccessPage(documentRoot);
-  initSessionNavigation(documentRoot);
+  if (!documentRoot.querySelector('[data-auth-view]')) initSessionNavigation(documentRoot);
 }
 
 initApp();

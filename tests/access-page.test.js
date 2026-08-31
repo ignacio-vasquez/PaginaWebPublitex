@@ -73,6 +73,7 @@ test('registro exitoso limpia contraseñas y muestra el perfil', async () => {
   assert.equal(dom.window.document.querySelector('[data-account-view]').hidden, false);
   assert.match(dom.window.document.querySelector('[data-account-view]').textContent, /Ignacio/);
   assert.match(dom.window.document.querySelector('[data-account-view]').textContent, /Cliente/);
+  assert.equal(dom.window.document.querySelector('[data-session-link]').textContent, 'Mi cuenta');
 });
 
 test('muestra el error de acceso y mueve el foco al estado', async () => {
@@ -112,6 +113,7 @@ test('login exitoso muestra la cuenta y envía credenciales como JSON', async ()
   assert.deepEqual(JSON.parse(loginCall[1].body), { email: 'luis@example.com', password: 'secreto1' });
   assert.equal(dom.window.document.querySelector('[data-account-view]').hidden, false);
   assert.match(dom.window.document.querySelector('[data-account-role]').textContent, /Trabajador/);
+  assert.equal(dom.window.document.querySelector('[data-session-link]').textContent, 'Mi cuenta');
 });
 
 test('muestra una sesión existente al cargar y permite cerrarla', async () => {
@@ -136,6 +138,30 @@ test('muestra una sesión existente al cargar y permite cerrarla', async () => {
   assert.equal(calls.at(-1)[1].credentials, 'same-origin');
   assert.equal(dom.window.document.querySelector('[data-account-view]').hidden, true);
   assert.equal(dom.window.document.querySelector('[data-auth-view]').hidden, false);
+  assert.equal(dom.window.document.querySelector('[data-session-link]').textContent, 'Ingresar');
+});
+
+test('una respuesta inicial retrasada no restaura la sesión después de cerrar sesión', async () => {
+  const dom = accessDom();
+  const { initAccessPage } = await import('../js/acceso.js');
+  let resolveSession;
+  const sessionResponse = new Promise((resolve) => { resolveSession = resolve; });
+  initAccessPage(dom.window.document, async (url) => {
+    if (url === '/api/auth/session') return sessionResponse;
+    return new Response(null, { status: 204 });
+  });
+
+  dom.window.document.querySelector('[data-logout]').click();
+  await new Promise(setImmediate);
+  resolveSession(response({
+    authenticated: true,
+    user: { id: 'u1', name: 'Ana', email: 'ana@example.com', role: 'cliente' },
+  }));
+  await new Promise(setImmediate);
+
+  assert.equal(dom.window.document.querySelector('[data-account-view]').hidden, true);
+  assert.equal(dom.window.document.querySelector('[data-auth-view]').hidden, false);
+  assert.equal(dom.window.document.querySelector('[data-session-link]').textContent, 'Ingresar');
 });
 
 test('renderiza datos recibidos de la API como texto', async () => {
