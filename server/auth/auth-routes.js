@@ -20,7 +20,7 @@ function getSessionToken(request) {
   return null;
 }
 
-function errorResponse(response, error) {
+function errorResponse(response, error, next) {
   if (error && error.code === 'EMAIL_EXISTS') {
     return response.status(409).json({ error: 'El correo ya está registrado.' });
   }
@@ -30,7 +30,7 @@ function errorResponse(response, error) {
   if (error && /^INVALID_/.test(error.code || '')) {
     return response.status(400).json({ error: error.message });
   }
-  return response.status(500).json({ error: 'Ocurrió un error inesperado.' });
+  return next(error);
 }
 
 function createAuthRouter({ authService, cookieSecure = false, loginLimiter } = {}) {
@@ -48,25 +48,25 @@ function createAuthRouter({ authService, cookieSecure = false, loginLimiter } = 
     response.cookie(SESSION_COOKIE, token, cookieOptions);
   }
 
-  router.post('/register', async (request, response) => {
+  router.post('/register', async (request, response, next) => {
     try {
       const result = await authService.register(request.body || {});
       setSessionCookie(response, result.token);
       return response.status(201).json({ user: result.user });
     } catch (error) {
-      return errorResponse(response, error);
+      return errorResponse(response, error, next);
     }
   });
 
   const loginHandlers = [];
   if (loginLimiter) loginHandlers.push(loginLimiter);
-  loginHandlers.push(async (request, response) => {
+  loginHandlers.push(async (request, response, next) => {
     try {
       const result = await authService.login(request.body || {});
       setSessionCookie(response, result.token);
       return response.status(200).json({ user: result.user });
     } catch (error) {
-      return errorResponse(response, error);
+      return errorResponse(response, error, next);
     }
   });
   router.post('/login', ...loginHandlers);
@@ -80,12 +80,12 @@ function createAuthRouter({ authService, cookieSecure = false, loginLimiter } = 
     }
   });
 
-  router.post('/logout', async (request, response) => {
+  router.post('/logout', async (request, response, next) => {
     try {
       await authService.logout(getSessionToken(request));
       return response.cookie(SESSION_COOKIE, '', { ...cookieOptions, maxAge: 0 }).status(204).end();
     } catch (error) {
-      return errorResponse(response, error);
+      return errorResponse(response, error, next);
     }
   });
 

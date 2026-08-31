@@ -2,17 +2,19 @@ const express = require('express');
 const path = require('node:path');
 const crypto = require('node:crypto');
 const bcrypt = require('bcryptjs');
-const rateLimit = require('express-rate-limit');
 const { createUserRepository } = require('./users/user-repository');
 const { createUserService } = require('./users/user-service');
 const { createSessionRepository } = require('./auth/session-repository');
 const { createAuthService } = require('./auth/auth-service');
 const { createAuthRouter } = require('./auth/auth-routes');
 const { createAccountRouter } = require('./account/account-routes');
+const { createLoginRateLimit } = require('./http/login-rate-limit');
+const { notFoundApi, handleError } = require('./http/error-handler');
 
 function createApp(options = {}) {
   const app = express();
   app.disable('x-powered-by');
+  app.set('logger', options.logger || console);
   app.use(express.json({ limit: '16kb' }));
   app.use(express.static(path.resolve(__dirname, '..')));
 
@@ -33,7 +35,7 @@ function createApp(options = {}) {
     now: options.now,
   });
   const loginLimiter = options.loginLimiter === undefined
-    ? rateLimit({ windowMs: 15 * 60 * 1000, limit: 10, standardHeaders: 'draft-7', legacyHeaders: false })
+    ? createLoginRateLimit()
     : options.loginLimiter;
   app.use('/api/auth', createAuthRouter({
     authService,
@@ -43,9 +45,8 @@ function createApp(options = {}) {
   app.use('/api/account', createAccountRouter({ authService }));
   if (options.testRoutes) app.use('/api/test', options.testRoutes);
 
-  app.use('/api', (_request, response) => {
-    response.status(404).json({ error: 'Recurso no encontrado.' });
-  });
+  app.use('/api', notFoundApi);
+  app.use(handleError);
   return app;
 }
 
