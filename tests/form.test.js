@@ -19,7 +19,6 @@ function createQuoteDom() {
         <button type="button" data-submit-quote>Enviar solicitud</button>
       </div>
       <section data-requests-view hidden>
-        <div data-requests-status role="status" aria-live="polite"></div>
         <article data-active-request tabindex="-1">
           <h3>Solicitud activa</h3>
           <p><strong>Simulación: estas solicitudes todavía no fueron enviadas a la empresa</strong></p>
@@ -33,6 +32,7 @@ function createQuoteDom() {
           <ul data-request-list></ul>
         </section>
         </section>
+        <div data-requests-status role="status" aria-live="polite" hidden></div>
         <div id="request-delete-dialog" role="alertdialog" aria-modal="true"
              aria-labelledby="request-delete-title" aria-describedby="request-delete-description" hidden>
           <div data-request-delete-panel>
@@ -456,8 +456,12 @@ test('eliminar la última solicitud entra al formulario vacío y enfoca Nombre',
   assert.equal(documentRoot.querySelector('[data-quote-form]').hidden, false);
   assert.equal(documentRoot.querySelector('[name="nombre"]').value, '');
   assert.equal(documentRoot.activeElement, documentRoot.querySelector('[name="nombre"]'));
-  assert.equal(documentRoot.querySelector('[data-requests-status]').hidden, false);
-  assert.equal(documentRoot.querySelector('[data-requests-status]').textContent,
+  const requestsStatus = documentRoot.querySelector('[data-requests-status]');
+  assert.equal(requestsStatus.hidden, false);
+  for (let ancestor = requestsStatus.parentElement; ancestor && ancestor !== documentRoot.body; ancestor = ancestor.parentElement) {
+    assert.equal(ancestor.hidden, false);
+  }
+  assert.equal(requestsStatus.textContent,
     'Solicitud eliminada. No quedan solicitudes preparadas.');
 });
 

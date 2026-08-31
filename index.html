@@ -130,7 +130,6 @@
           <button type="button" data-submit-quote>Enviar solicitud</button>
         </div>
         <section data-requests-view hidden>
-          <div data-requests-status role="status" aria-live="polite"></div>
           <article data-active-request tabindex="-1">
             <h3>Solicitud activa</h3>
             <p><strong>Simulación: estas solicitudes todavía no fueron enviadas a la empresa</strong></p>
@@ -144,6 +143,7 @@
             <ul data-request-list></ul>
           </section>
         </section>
+        <div data-requests-status role="status" aria-live="polite" hidden></div>
         <div id="request-delete-dialog" role="alertdialog" aria-modal="true"
              aria-labelledby="request-delete-title" aria-describedby="request-delete-description" hidden>
           <div data-request-delete-panel>

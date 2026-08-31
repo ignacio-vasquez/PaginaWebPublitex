@@ -190,7 +190,7 @@ export function initQuoteForm(documentRoot = document, options = {}) {
   const activeRequestList = activeRequest?.querySelector('[data-active-request-list]');
   const history = documentRoot.querySelector('[data-request-history]');
   const requestList = history?.querySelector('[data-request-list]');
-  const requestsStatus = requestsView?.querySelector('[data-requests-status]');
+  const requestsStatus = documentRoot.querySelector('[data-requests-status]');
   const cancelButton = documentRoot.querySelector('[data-cancel-form]');
   const deleteDialog = documentRoot.querySelector('#request-delete-dialog');
   const deleteDescription = deleteDialog?.querySelector('[data-delete-description]');
