@@ -123,4 +123,5 @@ test('presenta solicitudes preparadas como detalle y lista adaptable', () => {
   assert.match(css, /\[data-request-item\]\s*\{[^}]*display:\s*(?:grid|flex)/is);
   assert.match(desktopCss, /\[data-active-request\][^}]*\{[^}]*grid-column:/is);
   assert.match(desktopCss, /\[data-request-history\][^}]*\{[^}]*grid-column:/is);
+  assert.match(desktopCss, /\[data-request-item\]\s*\{[^}]*grid-template-columns:\s*minmax\(0,\s*1fr\)\s*;/is);
 });

@@ -893,8 +893,7 @@ body.dialog-open {
   }
 
   [data-request-item] {
-    grid-template-columns: minmax(0, 1fr) auto;
-    align-items: center;
+    grid-template-columns: minmax(0, 1fr);
   }
 
   body > footer {
