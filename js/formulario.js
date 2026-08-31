@@ -212,6 +212,7 @@ export function initQuoteForm(documentRoot = document, options = {}) {
   let pendingDeleteId = null;
   let deleteTrigger;
   let deleteBackgroundState = [];
+  let deleteBodyLockState;
 
   const deleteFocusableSelector = [
     'a[href]',
@@ -247,14 +248,19 @@ export function initQuoteForm(documentRoot = document, options = {}) {
   }
 
   function closeDeleteDialog({ restoreFocus = true } = {}) {
-    if (!deleteDialog || deleteDialog.hidden) return;
+    if (!deleteDialog) return;
 
+    const wasOpen = !deleteDialog.hidden;
     deleteDialog.hidden = true;
+    if (deleteBodyLockState !== undefined) {
+      documentRoot.body.classList.toggle('dialog-open', deleteBodyLockState);
+      deleteBodyLockState = undefined;
+    }
     restoreDeleteBackground();
     const trigger = deleteTrigger;
     pendingDeleteId = null;
     deleteTrigger = undefined;
-    if (restoreFocus) trigger?.isConnected && trigger.focus();
+    if (restoreFocus && wasOpen) trigger?.isConnected && trigger.focus();
   }
 
   function openDeleteDialog(id, trigger) {
@@ -263,8 +269,10 @@ export function initQuoteForm(documentRoot = document, options = {}) {
 
     pendingDeleteId = id;
     deleteTrigger = trigger;
+    deleteBodyLockState = documentRoot.body.classList.contains('dialog-open');
     deleteDescription.textContent = `¿Eliminar la solicitud preparada de ${request.nombre}?`;
     deleteDialog.hidden = false;
+    documentRoot.body.classList.add('dialog-open');
     isolateDeleteBackground();
     cancelDelete.focus();
   }
@@ -328,6 +336,11 @@ export function initQuoteForm(documentRoot = document, options = {}) {
   }
 
   function restoreActiveView() {
+    if (!getActiveRequest(state)) {
+      beginCreate({ preserveRequestsStatus: true });
+      return;
+    }
+
     setCreateMode();
     resetQuoteFields(form);
     clearFormErrors(fields);

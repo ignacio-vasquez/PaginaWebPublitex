@@ -487,6 +487,57 @@ test('eliminar la última solicitud entra al formulario vacío y enfoca Nombre',
     'Solicitud eliminada. No quedan solicitudes preparadas.');
 });
 
+test('cancelar el formulario vacío tras eliminar la última solicitud conserva el control de creación', async () => {
+  const dom = createQuoteDom();
+  const { initQuoteForm } = await import('../js/formulario.js');
+  const documentRoot = dom.window.document;
+
+  initQuoteForm(documentRoot, { createId: () => 'request-ana', now: () => '2026-08-30T10:00:00.000Z' });
+  fillQuote(documentRoot, { nombre: 'Ana' });
+  submit(documentRoot.querySelector('[data-quote-form]'), dom.window);
+  documentRoot.querySelector('[data-delete-active]').click();
+  documentRoot.querySelector('[data-confirm-delete]').click();
+  documentRoot.querySelector('[data-cancel-form]').click();
+
+  assert.equal(documentRoot.querySelector('[data-requests-view]').hidden, true);
+  assert.equal(documentRoot.querySelector('[data-quote-form]').hidden, false);
+  assert.equal(documentRoot.querySelector('[data-cancel-form]').hidden, false);
+  assert.equal(documentRoot.activeElement, documentRoot.querySelector('[name="nombre"]'));
+});
+
+test('el diálogo de eliminación bloquea scroll y restaura la clase previa en todos sus cierres', async () => {
+  const dom = createQuoteDom();
+  const { initQuoteForm } = await import('../js/formulario.js');
+  const documentRoot = dom.window.document;
+  const body = documentRoot.body;
+
+  initQuoteForm(documentRoot, { createId: () => 'request-ana', now: () => '2026-08-30T10:00:00.000Z' });
+  fillQuote(documentRoot, { nombre: 'Ana' });
+  submit(documentRoot.querySelector('[data-quote-form]'), dom.window);
+  const trigger = documentRoot.querySelector('[data-delete-active]');
+  const dialog = documentRoot.querySelector('#request-delete-dialog');
+
+  trigger.click();
+  assert.equal(body.classList.contains('dialog-open'), true);
+  dialog.querySelector('[data-cancel-delete]').click();
+  assert.equal(body.classList.contains('dialog-open'), false);
+
+  trigger.click();
+  documentRoot.dispatchEvent(new dom.window.KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+  assert.equal(body.classList.contains('dialog-open'), false);
+
+  trigger.click();
+  dialog.querySelector('[data-confirm-delete]').click();
+  assert.equal(body.classList.contains('dialog-open'), false);
+
+  body.classList.add('dialog-open');
+  fillValidQuote(documentRoot);
+  submit(documentRoot.querySelector('[data-quote-form]'), dom.window);
+  documentRoot.querySelector('[data-delete-active]').click();
+  dialog.querySelector('[data-cancel-delete]').click();
+  assert.equal(body.classList.contains('dialog-open'), true);
+});
+
 test('los identificadores de eliminación desconocidos no alteran la vista', async () => {
   const dom = createQuoteDom();
   const { initQuoteForm } = await import('../js/formulario.js');
