@@ -15,6 +15,11 @@ function createApp(options = {}) {
   const app = express();
   app.disable('x-powered-by');
   app.set('logger', options.logger || console);
+  if (options.ready) {
+    app.use((_request, _response, next) => {
+      Promise.resolve(options.ready).then(() => next(), next);
+    });
+  }
   app.use(express.json({ limit: '16kb' }));
   app.use(express.static(path.resolve(__dirname, '..')));
 
@@ -39,7 +44,7 @@ function createApp(options = {}) {
     : options.loginLimiter;
   app.use('/api/auth', createAuthRouter({
     authService,
-    cookieSecure: options.cookieSecure ?? process.env.NODE_ENV === 'production',
+    cookieSecure: options.cookieSecure ?? (options.env || process.env).NODE_ENV === 'production',
     loginLimiter,
   }));
   app.use('/api/account', createAccountRouter({ authService }));
