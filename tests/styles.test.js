@@ -1,7 +1,13 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const { readFileSync } = require('node:fs');
+const { join } = require('node:path');
 const { loadHomepage } = require('./html');
 const { loadStylesheet } = require('./css');
+
+function loadAccessPage() {
+  return readFileSync(join(__dirname, '..', 'acceso.html'), 'utf8');
+}
 
 function getCssBlock(css, startPattern) {
   const match = startPattern.exec(css);
@@ -44,10 +50,22 @@ test('diseña un encabezado sticky y una presentación adaptable', () => {
 
   assert.match(css, /body\s*>\s*header\s*\{[^}]*position:\s*sticky/is);
   assert.match(css, /body\s*>\s*header\s*\{[^}]*display:\s*flex/is);
-  assert.match(css, /main\s*>\s*section:first-child\s*\{[^}]*grid-template-columns:\s*1fr/is);
+  assert.match(css, /\.home-hero\s*\{[^}]*grid-template-columns:\s*1fr/is);
   assert.match(css, /body\s*>\s*header\s*>\s*a,[^}]*\[data-quote-form\]\s+button\s*\{[^}]*background:\s*var\(--color-accent-dark\)/is);
   assert.match(css, /html\s*\{[^}]*scroll-padding-top:\s*12rem/is);
   assert.match(css, /main\s*>\s*section\s*\{[^}]*scroll-margin-top:\s*12rem/is);
+});
+
+test('limita los estilos del hero a la presentación de inicio', () => {
+  const homepage = loadHomepage();
+  const accessPage = loadAccessPage();
+  const css = loadStylesheet();
+
+  assert.match(homepage, /<section\b[^>]*class="[^"]*\bhome-hero\b[^"]*"/i);
+  assert.doesNotMatch(accessPage, /class="[^"]*\bhome-hero\b[^"]*"/i);
+  assert.match(css, /\.home-hero\s*\{[^}]*background:\s*linear-gradient/i);
+  assert.match(css, /\.home-hero\s*\{[^}]*color:\s*#fff/i);
+  assert.doesNotMatch(css, /main\s*>\s*section:first-child\s*\{[^}]*background:\s*linear-gradient/is);
 });
 
 test('organiza servicios, proceso y portafolio como componentes visuales', () => {
@@ -75,7 +93,7 @@ test('incluye formulario, responsive y preferencias de accesibilidad', () => {
   assert.match(css, /body\s*>\s*header\s*>\s*a:hover,[^}]*\[data-quote-form\]\s+button:hover\s*\{[^}]*background:\s*var\(--color-accent-deep\)/is);
   assert.match(desktopCss, /html\s*\{[^}]*scroll-padding-top:\s*5\.5rem/is);
   assert.match(desktopCss, /main\s*>\s*section\s*\{[^}]*scroll-margin-top:\s*5\.5rem/is);
-  assert.match(desktopCss, /main\s*>\s*section:first-child\s*\{[^}]*grid-template-columns:\s*minmax\([^)]*\)\s+minmax\([^)]*\)/is);
+  assert.match(desktopCss, /\.home-hero\s*\{[^}]*grid-template-columns:\s*minmax\([^)]*\)\s+minmax\([^)]*\)/is);
   assert.match(desktopCss, /#servicios,\s*#trabajos\s*\{[^}]*grid-template-columns:\s*repeat\(3,\s*minmax\(0,\s*1fr\)\)/is);
   assert.match(desktopCss, /#proceso\s+ol\s*\{[^}]*grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\)/is);
   assert.match(css, /@media\s*\(prefers-reduced-motion:\s*reduce\)/i);
