@@ -47,6 +47,15 @@ test('presenta una página de acceso accesible con formularios y perfil oculto',
   assert.equal(documentRoot.querySelector('[data-account-view]').hidden, true);
 });
 
+test('ofrece un regreso explícito al inicio desde el encabezado de la cuenta', () => {
+  const documentRoot = accessDom().window.document;
+  const homeLink = documentRoot.querySelector('header [data-home-link]');
+
+  assert.ok(homeLink);
+  assert.equal(homeLink.textContent.trim(), 'Inicio');
+  assert.equal(homeLink.getAttribute('href'), 'index.html#inicio');
+});
+
 test('registro exitoso limpia contraseñas y muestra el perfil', async () => {
   const dom = accessDom();
   const { initAccessPage } = await import('../js/acceso.js');
