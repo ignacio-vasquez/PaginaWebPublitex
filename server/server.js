@@ -1,10 +1,15 @@
 const http = require('node:http');
 const crypto = require('node:crypto');
+const path = require('node:path');
 const bcrypt = require('bcryptjs');
 const { createApp } = require('./app');
+const { openDatabase } = require('./database/database');
+const { migrateDatabase } = require('./database/migrate');
 const { createUserRepository } = require('./users/user-repository');
+const { createSqliteUserRepository } = require('./users/sqlite-user-repository');
 const { createUserService } = require('./users/user-service');
 const { createSessionRepository } = require('./auth/session-repository');
+const { createSqliteSessionRepository } = require('./auth/sqlite-session-repository');
 const { createAuthService } = require('./auth/auth-service');
 const { bootstrapUsers: defaultBootstrapUsers } = require('./users/bootstrap-users');
 
@@ -18,8 +23,33 @@ function parsePort(value) {
 
 function createRuntime(options = {}) {
   const env = options.env || process.env;
-  const users = options.users || createUserRepository();
-  const sessions = options.sessions || createSessionRepository();
+  const usesInjectedServices = Boolean(
+    options.users || options.sessions || options.userService || options.authService,
+  );
+  let database = options.database || null;
+  let ownsDatabase = false;
+
+  if (!usesInjectedServices && !database) {
+    const databaseFilename = options.databaseFilename
+      || env.PUBLITEX_DB_PATH
+      || path.resolve(__dirname, '..', 'data', 'publitex.sqlite');
+    database = openDatabase({ filename: databaseFilename });
+    ownsDatabase = true;
+  }
+
+  if (database) {
+    try {
+      migrateDatabase({ database, migrationsDirectory: options.migrationsDirectory });
+    } catch (error) {
+      if (ownsDatabase && database.isOpen) database.close();
+      throw error;
+    }
+  }
+
+  const users = options.users
+    || (database ? createSqliteUserRepository({ database, now: options.now }) : createUserRepository());
+  const sessions = options.sessions
+    || (database ? createSqliteSessionRepository({ database }) : createSessionRepository());
   const userService = options.userService || createUserService({
     users,
     createId: options.createId || (() => crypto.randomUUID()),
@@ -56,7 +86,11 @@ function createRuntime(options = {}) {
     .then(() => bootstrap({ userService, env }))
     .then(resolveReady, rejectReady);
 
-  return { app, ready };
+  function close() {
+    if (ownsDatabase && database?.isOpen) database.close();
+  }
+
+  return { app, ready, close, database, users, sessions, userService, authService };
 }
 
 function startServer(options = {}) {
@@ -65,9 +99,11 @@ function startServer(options = {}) {
   const host = options.host ?? env.HOST ?? '0.0.0.0';
   const runtime = createRuntime(options);
   const server = http.createServer(runtime.app);
+  server.once('close', runtime.close);
   server.ready = runtime.ready.then(() => new Promise((resolve, reject) => {
     const onError = (error) => {
       server.removeListener('listening', onListening);
+      runtime.close();
       reject(error);
     };
     const onListening = () => {
@@ -77,7 +113,10 @@ function startServer(options = {}) {
     server.once('error', onError);
     server.once('listening', onListening);
     server.listen(parsePort(port), host);
-  }));
+  }), (error) => {
+    runtime.close();
+    throw error;
+  });
   // Keep a rejected startup promise observable through server.ready without an
   // unhandled-rejection warning for callers that only use the Server contract.
   server.ready.catch(() => {});

@@ -2,6 +2,8 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const { createRuntime } = require('../server/server');
+const { createUserRepository } = require('../server/users/user-repository');
+const { createSessionRepository } = require('../server/auth/session-repository');
 
 async function withServer(app, callback) {
   const server = app.listen(0, '127.0.0.1');
@@ -18,8 +20,15 @@ function noOpBootstrap() {
   return Promise.resolve();
 }
 
+function isolatedStorage() {
+  return {
+    users: createUserRepository(),
+    sessions: createSessionRepository(),
+  };
+}
+
 test('crear el runtime no escucha puertos por sí mismo', async () => {
-  const runtime = createRuntime({ bootstrapUsers: noOpBootstrap, env: {} });
+  const runtime = createRuntime({ ...isolatedStorage(), bootstrapUsers: noOpBootstrap, env: {} });
   await runtime.ready;
   assert.equal(runtime.app.listening, undefined);
 });
@@ -34,6 +43,7 @@ test('el runtime espera el bootstrap antes de aceptar tráfico', async () => {
     bootstrapFinished = resolve;
   });
   const runtime = createRuntime({
+    ...isolatedStorage(),
     env: {},
     bootstrapUsers: async () => {
       releaseBootstrap();
@@ -69,14 +79,18 @@ test('marca la cookie como segura únicamente en producción', async () => {
     async logout() {},
   };
 
-  const production = createRuntime({ env: { NODE_ENV: 'production' }, authService, bootstrapUsers: noOpBootstrap });
+  const production = createRuntime({
+    ...isolatedStorage(), env: { NODE_ENV: 'production' }, authService, bootstrapUsers: noOpBootstrap,
+  });
   await production.ready;
   await withServer(production.app, async (baseUrl) => {
     const response = await fetch(`${baseUrl}/api/auth/login`, { method: 'POST', body: '{}' });
     assert.match(response.headers.get('set-cookie'), /Secure/i);
   });
 
-  const development = createRuntime({ env: { NODE_ENV: 'development' }, authService, bootstrapUsers: noOpBootstrap });
+  const development = createRuntime({
+    ...isolatedStorage(), env: { NODE_ENV: 'development' }, authService, bootstrapUsers: noOpBootstrap,
+  });
   await development.ready;
   await withServer(development.app, async (baseUrl) => {
     const response = await fetch(`${baseUrl}/api/auth/login`, { method: 'POST', body: '{}' });
@@ -86,6 +100,7 @@ test('marca la cookie como segura únicamente en producción', async () => {
 
 test('rechaza el runtime cuando una cuenta privilegiada está incompleta', async () => {
   const runtime = createRuntime({
+    ...isolatedStorage(),
     env: { PUBLITEX_BOSS_NAME: 'Jefa', PUBLITEX_BOSS_EMAIL: 'jefa@example.com' },
   });
   await assert.rejects(runtime.ready, { code: 'INCOMPLETE_BOOTSTRAP_CONFIG' });
@@ -94,6 +109,7 @@ test('rechaza el runtime cuando una cuenta privilegiada está incompleta', async
 test('no imprime valores de contraseña durante un fallo de bootstrap', async () => {
   const messages = [];
   const runtime = createRuntime({
+    ...isolatedStorage(),
     env: {
       PUBLITEX_BOSS_NAME: 'Jefa',
       PUBLITEX_BOSS_EMAIL: 'jefa@example.com',
