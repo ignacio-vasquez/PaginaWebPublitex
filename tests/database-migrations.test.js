@@ -79,6 +79,156 @@ test('crea el catálogo versionado y rechaza ítems sin cotización', async () =
   });
 });
 
+test('vincula los extras de un ítem a su configuración compatible', async () => {
+  await withTestDatabase(async ({ database }) => {
+    const stickerConfiguration = database.prepare(`
+      SELECT id, product_id, material_id, size_id, quantity_id
+      FROM catalog_prices
+      WHERE product_id = 'sticker-print'
+      ORDER BY id
+      LIMIT 1
+    `).get();
+    const signConfiguration = database.prepare(`
+      SELECT id, product_id, material_id, size_id, quantity_id
+      FROM catalog_prices
+      WHERE product_id = 'sign-rect'
+      ORDER BY id
+      LIMIT 1
+    `).get();
+    const vehicleConfiguration = database.prepare(`
+      SELECT id, product_id, material_id, size_id, quantity_id
+      FROM catalog_prices
+      WHERE product_id = 'vehicle-wrap'
+      ORDER BY id
+      LIMIT 1
+    `).get();
+    const otherSignQuantity = database.prepare(`
+      SELECT id
+      FROM catalog_quantities
+      WHERE product_id = 'sign-rect' AND id != ?
+      ORDER BY sort_order
+      LIMIT 1
+    `).get(signConfiguration.quantity_id);
+
+    database.prepare(`
+      INSERT INTO users (id, name, email, password_hash, role, created_at, updated_at)
+      VALUES ('catalog-user', 'Catálogo', 'catalogo@example.com', 'hash', 'cliente', 0, 0)
+    `).run();
+    database.prepare(`
+      INSERT INTO quotes (id, user_id, created_at, updated_at)
+      VALUES ('catalog-quote', 'catalog-user', 0, 0)
+    `).run();
+    database.prepare(`
+      INSERT INTO quote_items (
+        id, quote_id, catalog_price_id, product_id, material_id, size_id, quantity_id,
+        product_label, material_label, size_label, quantity_label, quantity_value,
+        observation, estimated_subtotal, requires_evaluation, sort_order, created_at, updated_at
+      ) VALUES (?, 'catalog-quote', ?, ?, ?, ?, ?, 'Adhesivo', 'Vinilo', 'Formato', 'Cantidad', 10,
+        '', 5000, 0, 1, 0, 0)
+    `).run(
+      'sticker-item',
+      stickerConfiguration.id,
+      stickerConfiguration.product_id,
+      stickerConfiguration.material_id,
+      stickerConfiguration.size_id,
+      stickerConfiguration.quantity_id,
+    );
+    database.prepare(`
+      INSERT INTO quote_items (
+        id, quote_id, catalog_price_id, product_id, material_id, size_id, quantity_id,
+        product_label, material_label, size_label, quantity_label, quantity_value,
+        observation, estimated_subtotal, requires_evaluation, sort_order, created_at, updated_at
+      ) VALUES (?, 'catalog-quote', ?, ?, ?, ?, ?, 'Rotulación', 'Vehículo', 'Cobertura', 'Cantidad', 1,
+        '', NULL, 1, 3, 0, 0)
+    `).run(
+      'vehicle-item',
+      vehicleConfiguration.id,
+      vehicleConfiguration.product_id,
+      vehicleConfiguration.material_id,
+      vehicleConfiguration.size_id,
+      vehicleConfiguration.quantity_id,
+    );
+    database.prepare(`
+      INSERT INTO quote_items (
+        id, quote_id, catalog_price_id, product_id, material_id, size_id, quantity_id,
+        product_label, material_label, size_label, quantity_label, quantity_value,
+        observation, estimated_subtotal, requires_evaluation, sort_order, created_at, updated_at
+      ) VALUES (?, 'catalog-quote', ?, ?, ?, ?, ?, 'Adhesivo', 'Vinilo', 'Formato', 'Cantidad', 10,
+        '', 5000, 0, 2, 0, 0)
+    `).run(
+      'sticker-item-with-fake-price',
+      stickerConfiguration.id,
+      stickerConfiguration.product_id,
+      stickerConfiguration.material_id,
+      stickerConfiguration.size_id,
+      stickerConfiguration.quantity_id,
+    );
+
+    assert.throws(
+      () => database.prepare(`
+        INSERT INTO quote_items (
+          id, quote_id, catalog_price_id, product_id, material_id, size_id, quantity_id,
+          product_label, material_label, size_label, quantity_label, quantity_value,
+          observation, estimated_subtotal, requires_evaluation, sort_order, created_at, updated_at
+        ) VALUES ('incompatible-item', 'catalog-quote', ?, ?, ?, ?, ?, 'Letrero', 'Material', 'Medida', 'Cantidad', 1,
+          '', 1000, 0, 2, 0, 0)
+      `).run(
+        signConfiguration.id,
+        signConfiguration.product_id,
+        signConfiguration.material_id,
+        signConfiguration.size_id,
+        otherSignQuantity.id,
+      ),
+      (error) => error.code === 'ERR_SQLITE_ERROR' && error.errcode === 787,
+    );
+
+    database.prepare(`
+      INSERT INTO quote_item_extras (quote_item_id, catalog_price_id, extra_id, extra_label, unit_price)
+      VALUES ('sticker-item', ?, 'installation', 'Instalación', 3000)
+    `).run(stickerConfiguration.id);
+
+    assert.throws(
+      () => database.prepare(`
+        INSERT INTO quote_item_extras (quote_item_id, catalog_price_id, extra_id, extra_label, unit_price)
+        VALUES ('sticker-item', ?, 'eyelets', 'Ojales', 1500)
+      `).run(stickerConfiguration.id),
+      (error) => error.code === 'ERR_SQLITE_ERROR' && error.errcode === 787,
+    );
+    assert.throws(
+      () => database.prepare(`
+        INSERT INTO quote_item_extras (quote_item_id, catalog_price_id, extra_id, extra_label, unit_price)
+        VALUES ('sticker-item', ?, 'lighting', 'Iluminación', 8000)
+      `).run(signConfiguration.id),
+      (error) => error.code === 'ERR_SQLITE_ERROR' && error.errcode === 787,
+    );
+    assert.throws(
+      () => database.prepare(`
+        INSERT INTO quote_item_extras (quote_item_id, catalog_price_id, extra_id, extra_label, unit_price)
+        VALUES ('sticker-item-with-fake-price', ?, 'installation', 'Instalación', 999999)
+      `).run(stickerConfiguration.id),
+      (error) => error.code === 'ERR_SQLITE_ERROR' && error.errcode === 787,
+    );
+    assert.throws(
+      () => database.prepare(`
+        INSERT INTO quote_item_extras (quote_item_id, catalog_price_id, extra_id, extra_label, unit_price)
+        VALUES ('vehicle-item', ?, 'installation', 'Instalación', 6000)
+      `).run(vehicleConfiguration.id),
+      (error) => error.code === 'ERR_SQLITE_ERROR' && error.errcode === 787,
+    );
+
+    assert.deepEqual(
+      database.prepare(`
+        SELECT product.calculation_type, price.base_price
+        FROM catalog_products AS product
+        JOIN catalog_prices AS price ON price.product_id = product.id
+        WHERE product.id = 'vehicle-wrap'
+        ORDER BY price.id
+      `).all().map(({ calculation_type, base_price }) => ({ calculation_type, base_price })),
+      Array.from({ length: 6 }, () => ({ calculation_type: 'evaluation', base_price: null })),
+    );
+  });
+});
+
 test('revierte una migración inválida sin registrarla', () => {
   const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'publitex-migrations-'));
   const filename = path.join(directory, 'test.sqlite');

@@ -61,7 +61,8 @@ CREATE TABLE catalog_price_extras (
   extra_id TEXT NOT NULL REFERENCES catalog_extras(id),
   unit_price INTEGER NOT NULL CHECK (unit_price >= 0),
   active INTEGER NOT NULL DEFAULT 1 CHECK (active IN (0, 1)),
-  PRIMARY KEY (catalog_price_id, extra_id)
+  PRIMARY KEY (catalog_price_id, extra_id),
+  UNIQUE (catalog_price_id, extra_id, unit_price)
 );
 
 CREATE TABLE quotes (
@@ -97,15 +98,21 @@ CREATE TABLE quote_items (
   created_at INTEGER NOT NULL,
   updated_at INTEGER NOT NULL,
   FOREIGN KEY (catalog_price_id, product_id, material_id, size_id, quantity_id)
-    REFERENCES catalog_prices(id, product_id, material_id, size_id, quantity_id)
+    REFERENCES catalog_prices(id, product_id, material_id, size_id, quantity_id),
+  UNIQUE (id, catalog_price_id)
 );
 
 CREATE TABLE quote_item_extras (
-  quote_item_id TEXT NOT NULL REFERENCES quote_items(id) ON DELETE CASCADE,
-  extra_id TEXT NOT NULL REFERENCES catalog_extras(id),
+  quote_item_id TEXT NOT NULL,
+  catalog_price_id TEXT NOT NULL,
+  extra_id TEXT NOT NULL,
   extra_label TEXT NOT NULL,
   unit_price INTEGER NOT NULL CHECK (unit_price >= 0),
-  PRIMARY KEY (quote_item_id, extra_id)
+  PRIMARY KEY (quote_item_id, extra_id),
+  FOREIGN KEY (quote_item_id, catalog_price_id)
+    REFERENCES quote_items(id, catalog_price_id) ON DELETE CASCADE,
+  FOREIGN KEY (catalog_price_id, extra_id, unit_price)
+    REFERENCES catalog_price_extras(catalog_price_id, extra_id, unit_price)
 );
 
 CREATE INDEX catalog_materials_product_idx ON catalog_materials(product_id, sort_order);
