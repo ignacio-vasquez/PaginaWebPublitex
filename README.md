@@ -8,7 +8,7 @@ Esta versión combina la web pública con un servidor Express y una API de auten
 
 ## Prerrequisitos
 
-Node.js 22 o superior.
+Node.js 22.13 o superior.
 
 ## Preparar y ejecutar
 
@@ -36,9 +36,21 @@ npm start
 
 No guardes secretos en el repositorio: `.env` está ignorado por Git y `.env.example` contiene únicamente nombres de variables.
 
-La persistencia de usuarios y sesiones es temporal y está en memoria. Al reiniciar el proceso desaparecen las cuentas y sesiones creadas durante el desarrollo.
+Los usuarios y las sesiones se guardan en SQLite y sobreviven al reinicio del servidor. Por defecto la base queda en `data/publitex.sqlite`; puedes elegir otra ubicación mediante `PUBLITEX_DB_PATH`. Los archivos de la base y sus respaldos están excluidos de Git.
 
-El formulario de cotización es una simulación local: permite preparar varias solicitudes independientes durante la sesión actual de la página, editarlas, seleccionarlas y eliminarlas. Al recargar la página la colección en memoria se descarta; ninguna solicitud se envía ni se almacena. La persistencia futura requerirá una base de datos.
+El formulario de cotización todavía es una simulación local: permite preparar varias solicitudes independientes durante la sesión actual de la página, editarlas, seleccionarlas y eliminarlas. Al recargar la página la colección se descarta; ninguna solicitud se envía ni se almacena todavía.
+
+## Respaldar y restaurar SQLite
+
+Con el archivo de base existente, crea un respaldo coherente mediante:
+
+```bash
+npm run db:backup
+```
+
+El respaldo se guarda por defecto en `backups/` con fecha y hora en el nombre. Puedes configurar otra carpeta con `PUBLITEX_BACKUP_DIR`. El comando imprime la ruta completa del archivo creado y nunca sobrescribe un respaldo existente.
+
+Para restaurar, detén primero el servidor. Conserva el archivo de base actual bajo otro nombre, copia el respaldo elegido a la ubicación configurada en `PUBLITEX_DB_PATH` —o a `data/publitex.sqlite` si no configuraste una—, inicia nuevamente el servidor y verifica que puedas iniciar sesión. La restauración es deliberadamente manual para evitar sobrescribir datos por accidente.
 
 ## Ejecutar las pruebas
 
