@@ -80,6 +80,27 @@ test('devuelve evaluación para rotulación vehicular sin inventar un precio', a
   });
 });
 
+test('rechaza una configuración fija cuyo precio base no está definido', async () => {
+  await withTestDatabase(async ({ database }) => {
+    database.prepare(`
+      UPDATE catalog_prices
+      SET base_price = NULL
+      WHERE id = 'sign-rect:pvc-foam:50x30:sign-rect-qty-1'
+    `).run();
+
+    await assert.rejects(
+      createService(database).estimate({
+        productId: 'sign-rect',
+        materialId: 'pvc-foam',
+        sizeId: '50x30',
+        quantityId: 'sign-rect-qty-1',
+        extraIds: [],
+      }),
+      { code: 'INVALID_CATALOG_SELECTION', message: 'La selección del catálogo no es válida.' },
+    );
+  });
+});
+
 test('rechaza una selección incompatible sin exponer detalles de SQLite', async () => {
   await withTestDatabase(async ({ database }) => {
     await assert.rejects(

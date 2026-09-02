@@ -4,6 +4,10 @@ function invalidCatalogSelection() {
   return error;
 }
 
+function hasValidBasePrice(basePrice) {
+  return Number.isInteger(basePrice) && basePrice >= 0;
+}
+
 function createCatalogService({ catalog }) {
   return {
     async getCatalog() {
@@ -20,6 +24,10 @@ function createCatalogService({ catalog }) {
         extraIds: selection.extraIds,
       });
       if (!configuration) throw invalidCatalogSelection();
+      const requiresEvaluation = configuration.product.calculationType === 'evaluation';
+      if (!requiresEvaluation && !hasValidBasePrice(configuration.basePrice)) {
+        throw invalidCatalogSelection();
+      }
 
       const normalizedSelection = {
         productId: configuration.product.id,
@@ -35,7 +43,6 @@ function createCatalogService({ catalog }) {
         quantity: configuration.quantity.label,
         extras: configuration.extras.map((extra) => extra.label),
       };
-      const requiresEvaluation = configuration.product.calculationType === 'evaluation';
       const estimatedTotal = requiresEvaluation
         ? null
         : (configuration.basePrice + configuration.extras.reduce(
