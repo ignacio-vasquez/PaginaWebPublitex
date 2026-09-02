@@ -120,7 +120,7 @@ body > header nav a {
 body > header > a,
 body > header > a[data-session-link],
 .home-hero > p:last-child a:first-child,
-[data-quote-form] button {
+[data-simulator] button {
   display: inline-flex;
   min-height: 2.75rem;
   align-items: center;
@@ -465,11 +465,11 @@ body > header > a[data-session-link],
 }
 
 #cotizacion > p,
-#cotizacion [data-quote-form] {
+#cotizacion [data-simulator] {
   max-width: 48rem;
 }
 
-#cotizacion [data-quote-form] {
+#cotizacion [data-simulator] {
   display: grid;
   gap: 1rem;
   padding: clamp(1rem, 4vw, 2rem);
@@ -479,7 +479,7 @@ body > header > a[data-session-link],
   box-shadow: var(--shadow-card);
 }
 
-#cotizacion [data-quote-form] p {
+#cotizacion [data-simulator] p {
   margin: 0;
 }
 
@@ -555,9 +555,35 @@ button:hover {
 
 body > header > a:hover,
 .home-hero > p:last-child a:first-child:hover,
-[data-quote-form] button:hover {
+[data-simulator] button:hover {
   background: var(--color-accent-deep);
   transform: translateY(-0.1rem);
+}
+
+[data-simulator-extras] {
+  margin: 0;
+  padding: 1rem;
+  border: 0.0625rem solid var(--color-border);
+  border-radius: var(--radius-small);
+}
+
+[data-extra-options] {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1.25rem;
+}
+
+[data-simulator-result] {
+  padding: 1.25rem;
+  border: 0.125rem solid var(--color-accent);
+  border-radius: var(--radius-large);
+  background: #fff7f1;
+}
+
+[data-estimate-total] {
+  color: var(--color-ink);
+  font-size: clamp(1.5rem, 4vw, 2.25rem);
+  font-weight: 850;
 }
 
 :focus-visible {
@@ -998,7 +1024,7 @@ body.dialog-open {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  #cotizacion [data-quote-form] {
+  #cotizacion [data-simulator] {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
@@ -1006,12 +1032,15 @@ body.dialog-open {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  #cotizacion [data-quote-form] p:nth-last-child(-n + 3),
-  #cotizacion [data-quote-form] button {
+  #cotizacion [data-simulator] p:nth-last-child(-n + 3),
+  #cotizacion [data-simulator] fieldset,
+  #cotizacion [data-simulator] section,
+  #cotizacion [data-simulator] button,
+  #cotizacion [data-simulator] [role="status"] {
     grid-column: 1 / -1;
   }
 
-  [data-quote-form] button {
+  [data-simulator] button {
     justify-self: start;
   }
 

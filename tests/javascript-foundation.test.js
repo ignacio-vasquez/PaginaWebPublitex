@@ -12,27 +12,27 @@ test('carga un módulo JavaScript local al final del body', () => {
 
 test('la aplicación coordina módulos de responsabilidades separadas', () => {
   const source = readFileSync(join(__dirname, '..', 'js', 'app.js'), 'utf8');
-  for (const moduleName of ['menu', 'navegacion', 'portafolio', 'formulario']) {
+  for (const moduleName of ['menu', 'navegacion', 'portafolio', 'simulador']) {
     assert.match(source, new RegExp(`from ['"]\\./${moduleName}\\.js['"]`));
   }
 });
 
-test('los módulos JavaScript no referencian APIs de red ni almacenamiento', () => {
+test('solo el simulador usa red y almacenamiento temporal con un contrato acotado', () => {
   const scriptsDirectory = join(__dirname, '..', 'js');
   const html = loadHomepage();
 
-  for (const fileName of readdirSync(scriptsDirectory).filter((fileName) => fileName.endsWith('.js'))) {
+  for (const fileName of readdirSync(scriptsDirectory).filter((fileName) => fileName.endsWith('.js') && fileName !== 'simulador.js')) {
     const source = readFileSync(join(scriptsDirectory, fileName), 'utf8');
     assert.doesNotMatch(source, /(fetch\s*\(|XMLHttpRequest|sendBeacon|localStorage|sessionStorage|indexedDB|document\.cookie)/);
   }
-  assert.doesNotMatch(html, /<form\b[^>]*data-quote-form/i);
-  assert.match(html, /<div\b[^>]*data-quote-form[^>]*role="form"/i);
-  assert.match(html, /<button\b[^>]*type="button"[^>]*data-submit-quote/i);
+  const simulator = readFileSync(join(scriptsDirectory, 'simulador.js'), 'utf8');
+  assert.match(simulator, /publitex_quote_handoff_v1/);
+  assert.doesNotMatch(simulator, /localStorage|indexedDB|document\.cookie|innerHTML/);
+  assert.doesNotMatch(html, /<form\b[^>]*data-simulator/i);
+  assert.match(html, /<div\b[^>]*data-simulator[^>]*role="form"/i);
 });
 
-test('renderiza solicitudes sin innerHTML', () => {
-  for (const fileName of ['formulario.js', 'solicitudes.js']) {
-    const source = readFileSync(join(__dirname, '..', 'js', fileName), 'utf8');
-    assert.doesNotMatch(source, /innerHTML/);
-  }
+test('renderiza el simulador sin innerHTML', () => {
+  const source = readFileSync(join(__dirname, '..', 'js', 'simulador.js'), 'utf8');
+  assert.doesNotMatch(source, /innerHTML/);
 });

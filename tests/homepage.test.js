@@ -96,20 +96,21 @@ test('presenta a la empresa sin inventar cifras ni certificaciones', () => {
   assert.doesNotMatch(html, /años de experiencia|clientes satisfechos|certificad[oa]/i);
 });
 
-test('solicita los datos mínimos para preparar una cotización', () => {
+test('ofrece un simulador cerrado y accesible para estimar una cotización', () => {
   const html = loadHomepage();
   const quoteSection = html.match(/<section\b[^>]*id="cotizacion"[^>]*>[\s\S]*?<\/section>/i)?.[0] ?? '';
-  const fields = ['nombre', 'empresa-cliente', 'telefono', 'correo', 'servicio', 'descripcion'];
+  const fields = ['simulator-product', 'simulator-material', 'simulator-size', 'simulator-quantity', 'simulator-observation'];
 
   assert.equal(hasElement(html, 'section', 'id="cotizacion"'), true);
   assert.doesNotMatch(quoteSection, /<form\b/i);
-  assert.match(quoteSection, /<div\b[^>]*data-quote-form[^>]*role="form"/i);
-  assert.match(quoteSection, /<button\b[^>]*type="button"[^>]*data-submit-quote/i);
+  assert.match(quoteSection, /<div\b[^>]*data-simulator[^>]*role="form"/i);
+  assert.match(quoteSection, /data-simulator-estimate/i);
+  assert.match(html, /data-simulator-status[^>]*role="status"[^>]*aria-live="polite"/i);
+  assert.match(html, /Valor referencial sujeto a confirmación por la empresa/i);
   for (const field of fields) {
-    assert.match(html, new RegExp(`(?:id|name)="${field}"`, 'i'));
+    assert.match(html, new RegExp(`id="${field}"`, 'i'));
     assert.match(html, new RegExp(`for="${field}"`, 'i'));
   }
-  assert.equal((html.match(/\brequired\b/gi) || []).length >= 5, true);
 });
 
 test('incluye contacto y navegación complementaria en el pie', () => {

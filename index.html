@@ -108,53 +108,24 @@
       </section>
 
       <section id="cotizacion" aria-labelledby="titulo-cotizacion">
-        <h2 id="titulo-cotizacion" data-form-title>Cuéntanos sobre tu proyecto</h2>
-        <p>Indica qué necesitas. La empresa revisará la información antes de contactarte.</p>
-        <div data-quote-form role="form" aria-labelledby="titulo-cotizacion">
-          <p><label for="nombre">Nombre</label><input id="nombre" name="nombre" autocomplete="name" required></p>
-          <p><label for="empresa-cliente">Empresa</label><input id="empresa-cliente" name="empresa-cliente" autocomplete="organization"></p>
-          <p><label for="telefono">Teléfono</label><input id="telefono" name="telefono" type="tel" autocomplete="tel" required></p>
-          <p><label for="correo">Correo</label><input id="correo" name="correo" type="email" autocomplete="email" required></p>
-          <p>
-            <label for="servicio">Tipo de trabajo</label>
-            <select id="servicio" name="servicio" required>
-              <option value="">Selecciona una opción</option>
-              <option value="letrero">Letrero luminoso</option>
-              <option value="vehiculo">Rotulación vehicular</option>
-              <option value="adhesivo">Adhesivos y gráficas</option>
-              <option value="otro">Otro</option>
-            </select>
-          </p>
-          <p><label for="descripcion">Descripción, medidas y ubicación</label><textarea id="descripcion" name="descripcion" rows="6" required></textarea></p>
-          <p><label><input id="consentimiento" name="consentimiento" type="checkbox" required> Autorizo el uso de estos datos para responder mi solicitud.</label></p>
-          <div class="form-status" data-form-status role="status" aria-live="polite" hidden></div>
-          <button type="button" data-submit-quote>Enviar solicitud</button>
-        </div>
-        <section data-requests-view hidden>
-          <article data-active-request tabindex="-1">
-            <h3>Solicitud principal</h3>
-            <p><strong>Simulación: estas solicitudes todavía no fueron enviadas a la empresa</strong></p>
-            <dl data-active-request-list></dl>
-            <button type="button" data-edit-active>Editar</button>
-            <button type="button" data-delete-active>Eliminar</button>
-            <button type="button" data-create-request>Crear otra solicitud</button>
-          </article>
-          <section data-request-history aria-labelledby="request-history-title" hidden>
-            <h3 id="request-history-title">Otras solicitudes preparadas</h3>
-            <ul data-request-list></ul>
+        <h2 id="titulo-cotizacion">Simula tu proyecto</h2>
+        <p>Elige opciones disponibles y obtén una estimación demostrativa antes de crear tu cotización.</p>
+        <div data-simulator role="form" aria-labelledby="titulo-cotizacion">
+          <p><label for="simulator-product">Producto</label><select id="simulator-product" data-simulator-product><option value="">Cargando productos…</option></select></p>
+          <p><label for="simulator-material">Material</label><select id="simulator-material" data-simulator-material disabled></select></p>
+          <p><label for="simulator-size">Medida o cobertura</label><select id="simulator-size" data-simulator-size disabled></select></p>
+          <p><label for="simulator-quantity">Cantidad</label><select id="simulator-quantity" data-simulator-quantity disabled></select></p>
+          <fieldset data-simulator-extras disabled><legend>Extras disponibles</legend><div data-extra-options></div></fieldset>
+          <p><label for="simulator-observation">Observación opcional</label><textarea id="simulator-observation" data-simulator-observation rows="4"></textarea></p>
+          <button type="button" data-simulator-estimate>Calcular estimación</button>
+          <div class="form-status" data-simulator-status role="status" aria-live="polite"></div>
+          <section data-simulator-result aria-labelledby="estimate-title" hidden>
+            <h3 id="estimate-title">Tu estimación</h3>
+            <p data-estimate-summary></p><p data-estimate-total></p>
+            <p data-estimate-disclaimer>Valor referencial sujeto a confirmación por la empresa</p>
+            <button type="button" data-quote-project>Cotizar este proyecto</button>
           </section>
-        </section>
-        <div data-requests-status role="status" aria-live="polite" hidden></div>
-        <div id="request-delete-dialog" role="alertdialog" aria-modal="true"
-             aria-labelledby="request-delete-title" aria-describedby="request-delete-description" hidden>
-          <div data-request-delete-panel>
-            <h3 id="request-delete-title">Eliminar solicitud</h3>
-            <p id="request-delete-description" data-delete-description></p>
-            <button type="button" data-confirm-delete>Eliminar solicitud</button>
-            <button type="button" data-cancel-delete>Cancelar</button>
-          </div>
         </div>
-        <button type="button" data-cancel-form hidden>Cancelar</button>
       </section>
 
       <section id="contacto" aria-labelledby="titulo-contacto">
