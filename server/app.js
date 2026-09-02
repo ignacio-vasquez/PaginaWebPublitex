@@ -9,6 +9,7 @@ const { createAuthService } = require('./auth/auth-service');
 const { createAuthRouter } = require('./auth/auth-routes');
 const { createAccountRouter } = require('./account/account-routes');
 const { createCatalogRouter } = require('./catalog/catalog-routes');
+const { createQuoteRouter } = require('./quotes/quote-routes');
 const { createLoginRateLimit } = require('./http/login-rate-limit');
 const { notFoundApi, handleError } = require('./http/error-handler');
 
@@ -51,6 +52,12 @@ function createApp(options = {}) {
   app.use('/api/account', createAccountRouter({ authService }));
   if (options.catalogService) {
     app.use('/api/catalog', createCatalogRouter({ catalogService: options.catalogService }));
+  }
+  if (options.quoteService) {
+    app.use('/api/quotes', createQuoteRouter({
+      quoteService: options.quoteService,
+      authService,
+    }));
   }
   if (options.testRoutes) app.use('/api/test', options.testRoutes);
 

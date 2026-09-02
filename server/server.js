@@ -13,6 +13,8 @@ const { createSqliteSessionRepository } = require('./auth/sqlite-session-reposit
 const { createAuthService } = require('./auth/auth-service');
 const { createCatalogRepository } = require('./catalog/catalog-repository');
 const { createCatalogService } = require('./catalog/catalog-service');
+const { createQuoteRepository } = require('./quotes/quote-repository');
+const { createQuoteService } = require('./quotes/quote-service');
 const { bootstrapUsers: defaultBootstrapUsers } = require('./users/bootstrap-users');
 
 function parsePort(value) {
@@ -70,6 +72,14 @@ function createRuntime(options = {}) {
     || (database ? createCatalogRepository({ database }) : null);
   const catalogService = options.catalogService
     || (catalogRepository ? createCatalogService({ catalog: catalogRepository }) : null);
+  const quoteRepository = options.quoteRepository
+    || (database ? createQuoteRepository({ database, now: options.now }) : null);
+  const quoteService = options.quoteService
+    || (quoteRepository && catalogService ? createQuoteService({
+      quotes: quoteRepository,
+      catalogService,
+      createId: options.createQuoteId || (() => crypto.randomUUID()),
+    }) : null);
 
   let resolveReady;
   let rejectReady;
@@ -86,6 +96,7 @@ function createRuntime(options = {}) {
     userService,
     authService,
     catalogService,
+    quoteService,
     cookieSecure: options.cookieSecure ?? env.NODE_ENV === 'production',
   });
   const bootstrap = options.bootstrapUsers || defaultBootstrapUsers;
@@ -108,6 +119,8 @@ function createRuntime(options = {}) {
     authService,
     catalogRepository,
     catalogService,
+    quoteRepository,
+    quoteService,
   };
 }
 
