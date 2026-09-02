@@ -11,6 +11,8 @@ const { createUserService } = require('./users/user-service');
 const { createSessionRepository } = require('./auth/session-repository');
 const { createSqliteSessionRepository } = require('./auth/sqlite-session-repository');
 const { createAuthService } = require('./auth/auth-service');
+const { createCatalogRepository } = require('./catalog/catalog-repository');
+const { createCatalogService } = require('./catalog/catalog-service');
 const { bootstrapUsers: defaultBootstrapUsers } = require('./users/bootstrap-users');
 
 function parsePort(value) {
@@ -64,6 +66,10 @@ function createRuntime(options = {}) {
     hashToken: options.hashToken,
     now: options.now,
   });
+  const catalogRepository = options.catalogRepository
+    || (database ? createCatalogRepository({ database }) : null);
+  const catalogService = options.catalogService
+    || (catalogRepository ? createCatalogService({ catalog: catalogRepository }) : null);
 
   let resolveReady;
   let rejectReady;
@@ -79,6 +85,7 @@ function createRuntime(options = {}) {
     sessions,
     userService,
     authService,
+    catalogService,
     cookieSecure: options.cookieSecure ?? env.NODE_ENV === 'production',
   });
   const bootstrap = options.bootstrapUsers || defaultBootstrapUsers;
@@ -90,7 +97,18 @@ function createRuntime(options = {}) {
     if (ownsDatabase && database?.isOpen) database.close();
   }
 
-  return { app, ready, close, database, users, sessions, userService, authService };
+  return {
+    app,
+    ready,
+    close,
+    database,
+    users,
+    sessions,
+    userService,
+    authService,
+    catalogRepository,
+    catalogService,
+  };
 }
 
 function startServer(options = {}) {
