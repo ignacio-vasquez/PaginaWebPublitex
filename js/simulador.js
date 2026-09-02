@@ -18,7 +18,7 @@ function replaceOptions(select, options, placeholder) {
 export function initSimulator(
   documentRoot = document,
   api = fetch,
-  storage = sessionStorage,
+  storage = globalThis.sessionStorage,
   navigate = (url) => { window.location.href = url; },
 ) {
   const root = documentRoot.querySelector('[data-simulator]');

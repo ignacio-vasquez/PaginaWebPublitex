@@ -28,7 +28,12 @@ function roleLabel(role) {
   return roleLabels[role] || 'Usuario';
 }
 
-export function initAccessPage(documentRoot = document, api = globalThis.fetch) {
+export function initAccessPage(
+  documentRoot = document,
+  api = globalThis.fetch,
+  locationObject = globalThis.location,
+  navigate = (url) => { globalThis.location.href = url; },
+) {
   const authView = documentRoot.querySelector('[data-auth-view]');
   const accountView = documentRoot.querySelector('[data-account-view]');
   const status = documentRoot.querySelector('[data-auth-status]');
@@ -41,6 +46,8 @@ export function initAccessPage(documentRoot = document, api = globalThis.fetch) 
 
   const sessionLink = documentRoot.querySelector('[data-session-link]');
   let sessionStateVersion = 0;
+  const requestedReturn = new URLSearchParams(locationObject?.search || '').get('returnTo');
+  const returnTo = new Set(['cotizaciones.html']).has(requestedReturn) ? requestedReturn : null;
 
   const showSessionLink = (authenticated) => {
     if (sessionLink) sessionLink.textContent = authenticated ? 'Mi cuenta' : 'Ingresar';
@@ -85,6 +92,7 @@ export function initAccessPage(documentRoot = document, api = globalThis.fetch) 
       showAccount(body.user);
       showSessionLink(true);
       showStatus(successMessage, 'success');
+      if (returnTo) navigate(returnTo);
     } catch {
       showStatus('No pudimos conectar con el servicio. Inténtalo nuevamente.', 'error');
     } finally {

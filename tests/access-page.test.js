@@ -32,6 +32,8 @@ test('presenta una página de acceso accesible con formularios y perfil oculto',
   assert.ok(documentRoot.querySelector('[data-register-form]'));
   assert.ok(documentRoot.querySelector('[data-account-view]'));
   assert.ok(documentRoot.querySelector('[data-logout]'));
+  assert.ok(documentRoot.querySelector('[data-account-view] a[href="cotizaciones.html"]'));
+  assert.match(documentRoot.body.textContent, /Necesitas una cuenta para guardar la estimación como cotización/);
 
   for (const selector of ['[data-login-form] label', '[data-register-form] label']) {
     assert.ok(documentRoot.querySelectorAll(selector).length >= 2, `labels visibles en ${selector}`);
