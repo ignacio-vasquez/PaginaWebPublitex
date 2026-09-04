@@ -2,9 +2,9 @@
 
 Proyecto progresivo para una empresa de publicidad visual y para practicar desarrollo web y bases de datos.
 
-## Etapa actual: servidor y autenticación
+## Etapa actual: simulador y cotizaciones persistentes
 
-Esta versión combina la web pública con un servidor Express y una API de autenticación. Incluye menú móvil, navegación activa, filtros de portafolio, visor de trabajos y validación de cotizaciones.
+Esta versión combina la web pública con un servidor Express, autenticación y un flujo persistente de cotizaciones. Incluye menú móvil, navegación activa, filtros de portafolio, visor de trabajos, un simulador público de precios y un espacio privado para administrar borradores.
 
 ## Prerrequisitos
 
@@ -38,7 +38,11 @@ No guardes secretos en el repositorio: `.env` está ignorado por Git y `.env.exa
 
 Los usuarios y las sesiones se guardan en SQLite y sobreviven al reinicio del servidor. Por defecto la base queda en `data/publitex.sqlite`; puedes elegir otra ubicación mediante `PUBLITEX_DB_PATH`. Los archivos de la base y sus respaldos están excluidos de Git.
 
-El formulario de cotización todavía es una simulación local: permite preparar varias solicitudes independientes durante la sesión actual de la página, editarlas, seleccionarlas y eliminarlas. Al recargar la página la colección se descarta; ninguna solicitud se envía ni se almacena todavía.
+Los precios del simulador son valores demostrativos y el servidor los calcula usando el catálogo almacenado en SQLite; el navegador nunca decide el precio. La rotulación de vehículos se muestra como **requiere evaluación**, sin inventar un total.
+
+Para guardar una selección es necesario registrarse o iniciar sesión. Cada cliente dispone de **Mis cotizaciones**, donde puede mantener borradores con varios productos, datos de contacto y observaciones. Los borradores se autoguardan en SQLite, por lo que sobreviven a recargas y reinicios del servidor. Después de enviar una cotización queda disponible solo para lectura durante esta etapa.
+
+La tabla de precios definitiva de la empresa y un editor administrativo del catálogo quedan para una etapa futura.
 
 ## Respaldar y restaurar SQLite
 

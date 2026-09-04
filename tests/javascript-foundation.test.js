@@ -12,22 +12,25 @@ test('carga un módulo JavaScript local al final del body', () => {
 
 test('la aplicación coordina módulos de responsabilidades separadas', () => {
   const source = readFileSync(join(__dirname, '..', 'js', 'app.js'), 'utf8');
-  for (const moduleName of ['menu', 'navegacion', 'portafolio', 'simulador']) {
+  for (const moduleName of ['menu', 'navegacion', 'portafolio', 'simulador', 'cotizaciones']) {
     assert.match(source, new RegExp(`from ['"]\\./${moduleName}\\.js['"]`));
   }
 });
 
-test('solo el simulador usa red y almacenamiento temporal con un contrato acotado', () => {
+test('solo los flujos de cotización usan red y almacenamiento temporal con contratos acotados', () => {
   const scriptsDirectory = join(__dirname, '..', 'js');
   const html = loadHomepage();
+  const allowedNetworkModules = new Set(['simulador.js', 'cotizaciones.js']);
 
-  for (const fileName of readdirSync(scriptsDirectory).filter((fileName) => fileName.endsWith('.js') && fileName !== 'simulador.js')) {
+  for (const fileName of readdirSync(scriptsDirectory).filter((fileName) => fileName.endsWith('.js') && !allowedNetworkModules.has(fileName))) {
     const source = readFileSync(join(scriptsDirectory, fileName), 'utf8');
     assert.doesNotMatch(source, /(fetch\s*\(|XMLHttpRequest|sendBeacon|localStorage|sessionStorage|indexedDB|document\.cookie)/);
   }
   const simulator = readFileSync(join(scriptsDirectory, 'simulador.js'), 'utf8');
+  const quotes = readFileSync(join(scriptsDirectory, 'cotizaciones.js'), 'utf8');
   assert.match(simulator, /publitex_quote_handoff_v1/);
   assert.doesNotMatch(simulator, /localStorage|indexedDB|document\.cookie|innerHTML/);
+  assert.doesNotMatch(quotes, /localStorage|indexedDB|document\.cookie|innerHTML/);
   assert.doesNotMatch(html, /<form\b[^>]*data-simulator/i);
   assert.match(html, /<div\b[^>]*data-simulator[^>]*role="form"/i);
 });
