@@ -126,3 +126,12 @@ test('presenta el resultado del simulador como una tarjeta adaptable', () => {
   assert.match(css, /\[data-estimate-total\]\s*\{[^}]*font-size:/is);
   assert.match(css, /\[data-extra-options\]\s*\{[^}]*display:\s*flex/is);
 });
+
+test('organiza las cotizaciones sin desbordamiento y presenta un diálogo modal', () => {
+  const css = loadStylesheet();
+  const desktopCss = getCssBlock(css, /@media\s*\(min-width:\s*48rem\)\s*/i);
+  assert.match(css, /\[data-quote-workspace\]\s*\{[^}]*display:\s*grid[^}]*grid-template-columns:\s*minmax\(0,\s*1fr\)/is);
+  assert.match(css, /\[data-quote-item\]\s*\{[^}]*min-width:\s*0[^}]*overflow-wrap:\s*anywhere/is);
+  assert.match(css, /\[data-submit-dialog\]\s*\{[^}]*position:\s*fixed[^}]*inset:\s*0/is);
+  assert.match(desktopCss, /\[data-quote-workspace\]\s*\{[^}]*grid-template-columns:\s*minmax\(16rem,\s*0\.7fr\)\s+minmax\(0,\s*1\.3fr\)/is);
+});

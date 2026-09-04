@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Gestiona tus cotizaciones de Publitexweb.">
+    <link rel="stylesheet" href="css/styles.css">
+    <title>Mis cotizaciones | Publitexweb</title>
+  </head>
+  <body class="quote-page">
+    <header>
+      <p><a href="index.html#inicio" aria-label="Publitexweb, ir al inicio">Publitexweb</a></p>
+      <nav aria-label="Navegación de cotizaciones">
+        <ul><li><a href="index.html#inicio">Inicio</a></li><li><a href="acceso.html">Mi cuenta</a></li><li><a href="cotizaciones.html" aria-current="page">Mis cotizaciones</a></li></ul>
+      </nav>
+    </header>
+    <main>
+      <section data-quote-page aria-labelledby="quotes-title">
+        <p class="eyebrow">Espacio privado</p>
+        <h1 id="quotes-title">Mis cotizaciones</h1>
+        <p>Guarda borradores con varios productos y envíalos cuando estén listos.</p>
+        <div data-quote-workspace>
+          <aside aria-labelledby="quote-list-title">
+            <h2 id="quote-list-title">Borradores y enviadas</h2>
+            <button type="button" data-create-quote>Nuevo borrador</button>
+            <ul data-quote-list></ul>
+          </aside>
+          <section data-quote-editor aria-labelledby="quote-editor-title" hidden>
+            <h2 id="quote-editor-title">Cotización</h2>
+            <p><label for="quote-phone">Teléfono</label><input id="quote-phone" data-quote-phone type="tel" autocomplete="tel"></p>
+            <p><label for="quote-company">Empresa</label><input id="quote-company" data-quote-company autocomplete="organization"></p>
+            <div data-save-status role="status" aria-live="polite">Borrador guardado</div>
+            <button type="button" data-save-retry hidden>Reintentar guardado</button>
+            <section aria-labelledby="quote-items-title"><h3 id="quote-items-title">Productos</h3><div data-quote-items></div>
+              <a data-add-item href="index.html#cotizacion">Agregar producto</a>
+            </section>
+            <p data-quote-total></p>
+            <button type="button" data-submit-quote>Enviar cotización</button>
+          </section>
+        </div>
+        <div data-quote-page-status role="status" aria-live="polite"></div>
+        <div data-submit-dialog role="dialog" aria-modal="true" aria-labelledby="submit-dialog-title" hidden>
+          <div data-submit-dialog-panel>
+            <h2 id="submit-dialog-title">¿Enviar esta cotización?</h2>
+            <p>Después de enviarla quedará disponible solo para lectura.</p>
+            <button type="button" data-confirm-submit>Confirmar envío</button>
+            <button type="button" data-cancel-submit>Cancelar</button>
+          </div>
+        </div>
+        <span class="visually-hidden">Guardando… Borrador guardado Error al guardar. Reintentar.</span>
+      </section>
+    </main>
+    <footer><p><strong>Publitexweb</strong> — Publicidad visual</p></footer>
+    <script type="module" src="js/app.js"></script>
+  </body>
+</html>
