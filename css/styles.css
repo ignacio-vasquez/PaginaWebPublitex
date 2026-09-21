@@ -1167,6 +1167,10 @@ body.dialog-open {
     gap: 0.5rem 1rem;
   }
 
+  body > header > nav + [data-session-link] {
+    margin-left: clamp(1.5rem, 3vw, 2.5rem);
+  }
+
   .home-hero {
     grid-template-columns: minmax(0, 1.05fr) minmax(18rem, 0.95fr);
   }

@@ -119,6 +119,7 @@ test('presenta los estados interactivos de navegación, portafolio y formulario'
   assert.match(css, /\[hidden\]\s*\{[^}]*display:\s*none\s*!important/is);
   assert.match(desktopCss, /#menu-button\s*\{[^}]*display:\s*none/is);
   assert.match(desktopCss, /#primary-navigation\s*\{[^}]*display:\s*block/is);
+  assert.match(desktopCss, /body\s*>\s*header\s*>\s*nav\s*\+\s*\[data-session-link\]\s*\{[^}]*margin-left:\s*clamp\(1\.5rem/is);
 });
 
 test('presenta el resultado del simulador como una tarjeta adaptable', () => {
