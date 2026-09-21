@@ -117,8 +117,12 @@ body > header nav a {
   font-weight: 650;
 }
 
-body > header > a,
-body > header > a[data-session-link],
+body > header > a {
+  color: var(--color-ink);
+  font-size: 0.92rem;
+  font-weight: 650;
+}
+
 .home-hero > p:last-child a:first-child,
 [data-simulator] button {
   display: inline-flex;
@@ -558,7 +562,13 @@ button:hover {
   color: #fff;
 }
 
+body > header nav a:hover,
+body > header nav a:focus-visible,
 body > header > a:hover,
+body > header > a:focus-visible {
+  color: var(--color-accent-dark);
+}
+
 .home-hero > p:last-child a:first-child:hover,
 [data-simulator] button:hover {
   background: var(--color-accent-deep);
@@ -1260,10 +1270,6 @@ body.dialog-open {
 
 body > header p a {
   letter-spacing: -0.04em;
-}
-
-body > header > a[data-session-link] {
-  background: var(--color-ink);
 }
 
 .home-hero h1 {

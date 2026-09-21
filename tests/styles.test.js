@@ -51,7 +51,7 @@ test('diseña un encabezado sticky y una presentación adaptable', () => {
   assert.match(css, /body\s*>\s*header\s*\{[^}]*position:\s*sticky/is);
   assert.match(css, /body\s*>\s*header\s*\{[^}]*display:\s*flex/is);
   assert.match(css, /\.home-hero\s*\{[^}]*grid-template-columns:\s*1fr/is);
-  assert.match(css, /body\s*>\s*header\s*>\s*a,[^}]*\[data-simulator\]\s+button\s*\{[^}]*background:\s*var\(--color-accent-dark\)/is);
+  assert.match(css, /\.home-hero\s*>\s*p:last-child\s+a:first-child,[^}]*\[data-simulator\]\s+button\s*\{[^}]*background:\s*var\(--color-accent-dark\)/is);
   assert.match(css, /html\s*\{[^}]*scroll-padding-top:\s*12rem/is);
   assert.match(css, /main\s*>\s*section\s*\{[^}]*scroll-margin-top:\s*12rem/is);
 });
@@ -90,7 +90,7 @@ test('incluye formulario, responsive y preferencias de accesibilidad', () => {
   assert.match(css, /#cotizacion\s+\[data-simulator\]\s*\{/i);
   assert.match(css, /input,\s*select,\s*textarea\s*\{[^}]*border:\s*0\.0625rem solid #7b8790/is);
   assert.match(css, /:focus-visible\s*\{[^}]*outline:\s*0\.2rem solid var\(--color-accent-dark\)/is);
-  assert.match(css, /body\s*>\s*header\s*>\s*a:hover,[^}]*\[data-simulator\]\s+button:hover\s*\{[^}]*background:\s*var\(--color-accent-deep\)/is);
+  assert.match(css, /\.home-hero\s*>\s*p:last-child\s+a:first-child:hover,[^}]*\[data-simulator\]\s+button:hover\s*\{[^}]*background:\s*var\(--color-accent-deep\)/is);
   assert.match(desktopCss, /html\s*\{[^}]*scroll-padding-top:\s*5\.5rem/is);
   assert.match(desktopCss, /main\s*>\s*section\s*\{[^}]*scroll-margin-top:\s*5\.5rem/is);
   assert.match(desktopCss, /\.home-hero\s*\{[^}]*grid-template-columns:\s*minmax\([^)]*\)\s+minmax\([^)]*\)/is);
