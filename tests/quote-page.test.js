@@ -258,7 +258,7 @@ test('un error de guardado en otro borrador no bloquea una cotización válida',
 });
 
 
-test('el historial identifica cada cotización y Ver estado muestra su progreso real', async () => {
+test('el historial ofrece eliminar para borradores y Ver estado solo para enviadas', async () => {
   const sent = { ...draft, id: 'quote-2', code: 'COT-000002', status: 'submitted', createdAt: 2000, submittedAt: 3000 };
   const first = { ...draft, code: 'COT-000001', createdAt: 1000 };
   const { dom } = await init({ api: async (url) => {
@@ -281,9 +281,23 @@ test('el historial identifica cada cotización y Ver estado muestra su progreso 
   assert.equal(tracking.querySelectorAll('[data-step-state="pending"]').length, 5);
   assert.equal(doc.activeElement.id, 'quote-tracking-title');
   assert.equal(doc.querySelectorAll('[data-select-quote][aria-current="true"]').length, 1);
-  doc.querySelectorAll('[data-view-quote-status]')[1].click();
-  assert.equal(tracking.querySelector('[aria-current="step"] [data-step-label]').textContent, 'Borrador');
-  assert.match(doc.querySelector('#quote-editor-title').textContent, /COT-000001/);
+  const draftEntry = doc.querySelector('[data-quote-id="quote-1"]');
+  assert.equal(draftEntry.querySelector('[data-delete-draft]').textContent, 'Eliminar borrador');
+  assert.equal(draftEntry.querySelector('[data-view-quote-status]'), null);
+});
+
+test('elimina un borrador del historial y del editor', async () => {
+  const { dom } = await init({ api: async (url, options = {}) => {
+    if (url === '/api/auth/session') return json({ authenticated: true });
+    if (url === '/api/quotes' && !options.method) return json([draft]);
+    if (url === '/api/quotes/quote-1' && options.method === 'DELETE') return json({ deleted: true });
+    throw new Error(`${options.method || 'GET'} ${url}`);
+  } });
+  const doc = dom.window.document;
+  doc.querySelector('[data-delete-draft]').click();
+  await new Promise(setImmediate);
+  assert.equal(doc.querySelector('[data-quote-list]').textContent.includes('Aún no tienes cotizaciones'), true);
+  assert.equal(doc.querySelector('[data-quote-editor]').hidden, true);
 });
 
 test('el historial vacío explica cómo comenzar sin mostrar estados inventados', async () => {

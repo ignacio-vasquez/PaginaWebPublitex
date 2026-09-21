@@ -75,6 +75,9 @@ function createQuoteRouter({ quoteService, authService }) {
     sendResult(response, await quoteService.submit(request.params.id, request.user.id, request.simulation
       ? { effectiveRole: 'cliente', actorId: request.realUser.id } : undefined));
   }));
+  router.delete('/:id', action(async (request, response) => {
+    sendResult(response, await quoteService.deleteDraft(request.params.id, request.user.id));
+  }));
 
   return router;
 }

@@ -149,3 +149,17 @@ test('acepta un teléfono local de nueve dígitos al guardar y enviar', async ()
     assert.equal(submitted.status, 'submitted');
   });
 });
+
+test('elimina borradores y rechaza eliminar cotizaciones enviadas', async () => {
+  await withTestDatabase(async ({ database }) => {
+    insertUser(database);
+    const service = createService(database);
+    const draft = await service.createDraft('user-1');
+    assert.deepEqual(await service.deleteDraft(draft.id, 'user-1'), { deleted: true });
+    const submitted = await service.createDraft('user-1');
+    await service.addItem(submitted.id, 'user-1', signSelection);
+    await service.saveDetails(submitted.id, 'user-1', { phone: '912345678', company: '' });
+    await service.submit(submitted.id, 'user-1');
+    await assert.rejects(service.deleteDraft(submitted.id, 'user-1'), { code: 'QUOTE_NOT_EDITABLE' });
+  });
+});

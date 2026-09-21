@@ -75,6 +75,7 @@ function createQuoteRepository({ database, now = Date.now }) {
     UPDATE quotes SET status = 'submitted', submitted_at = ?, updated_at = ?
     WHERE id = ? AND user_id = ? AND status = 'draft'
   `);
+  const deleteQuote = database.prepare(`DELETE FROM quotes WHERE id = ? AND user_id = ?`);
 
   function transaction(callback) {
     database.exec('BEGIN IMMEDIATE;');
@@ -237,6 +238,14 @@ function createQuoteRepository({ database, now = Date.now }) {
         submitQuote.run(timestamp, timestamp, id, userId);
         recordEvent(id, userId, 'submitted', timestamp, effectiveRole, actorId);
         return mapQuote(findQuote.get(id, userId));
+      });
+    },
+
+    async deleteDraft({ id, userId }) {
+      return transaction(() => {
+        if (!ensureEditable(id, userId)) return null;
+        deleteQuote.run(id, userId);
+        return { deleted: true };
       });
     },
   };

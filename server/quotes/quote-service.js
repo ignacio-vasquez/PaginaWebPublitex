@@ -93,6 +93,15 @@ function createQuoteService({ quotes, catalogService, createId }) {
       normalizePhone(quote.phone, true);
       return quotes.submit({ id, userId, ...audit });
     },
+
+    async deleteDraft(id, userId) {
+      const quote = await quotes.findOwned(id, userId);
+      if (!quote) return null;
+      if (quote.status !== 'draft') {
+        throw publicError('QUOTE_NOT_EDITABLE', 'La cotización ya no se puede editar.');
+      }
+      return quotes.deleteDraft({ id, userId });
+    },
   };
 }
 

@@ -111,8 +111,10 @@ export function initQuotePage(
         () => selectQuote(false),
       );
       select.setAttribute('aria-label', `Ver cotización ${code.textContent}`);
-      const viewStatus = button('Ver estado', 'data-view-quote-status', () => selectQuote(true));
-      viewStatus.setAttribute('aria-label', `Ver estado de ${code.textContent}`);
+      const viewStatus = quote.status === 'draft'
+        ? button('Eliminar borrador', 'data-delete-draft', (event) => deleteDraft(quote.id, event.currentTarget))
+        : button('Ver estado', 'data-view-quote-status', () => selectQuote(true));
+      viewStatus.setAttribute('aria-label', `${quote.status === 'draft' ? 'Eliminar borrador' : 'Ver estado'} ${code.textContent}`);
       if (current?.id === quote.id) {
         select.setAttribute('aria-current', 'true');
         item.dataset.selected = 'true';
@@ -122,6 +124,28 @@ export function initQuotePage(
       actions.append(select, viewStatus);
       item.append(code, date, status, count, actions);
       list.append(item);
+    }
+  }
+
+  async function deleteDraft(quoteId, control) {
+    let confirmed = true;
+    if (typeof globalThis.confirm === 'function') {
+      try { confirmed = globalThis.confirm('¿Eliminar este borrador? Esta acción no se puede deshacer.'); } catch { confirmed = false; }
+    }
+    if (!confirmed) return;
+    control.disabled = true;
+    try {
+      await request(`/api/quotes/${quoteId}`, { method: 'DELETE' });
+      quotes = quotes.filter((quote) => quote.id !== quoteId);
+      if (current?.id === quoteId) {
+        current = quotes[0] || null;
+        tracking.hidden = true;
+      }
+      renderList();
+      renderEditor();
+    } catch (error) {
+      pageStatus.textContent = error.message;
+      control.disabled = false;
     }
   }
 

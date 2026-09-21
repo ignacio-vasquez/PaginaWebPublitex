@@ -168,6 +168,22 @@ test('envía el borrador transaccionalmente y bloquea todas las mutaciones poste
     for (const operation of operations) {
       await assert.rejects(operation, { code: 'QUOTE_NOT_EDITABLE' });
     }
+    await assert.rejects(
+      () => quotes.deleteDraft({ id: 'quote-1', userId: 'user-1' }),
+      { code: 'QUOTE_NOT_EDITABLE' },
+    );
+  });
+});
+
+test('elimina solo borradores del propietario y conserva el historial de otros usuarios', async () => {
+  await withRepository(async ({ makeRepository }) => {
+    const quotes = makeRepository();
+    await quotes.createDraft({ id: 'quote-1', userId: 'user-1' });
+    await quotes.createDraft({ id: 'quote-2', userId: 'user-2' });
+    assert.equal(await quotes.deleteDraft({ id: 'quote-1', userId: 'user-2' }), null);
+    assert.deepEqual(await quotes.deleteDraft({ id: 'quote-1', userId: 'user-1' }), { deleted: true });
+    assert.equal(await quotes.findOwned('quote-1', 'user-1'), null);
+    assert.ok(await quotes.findOwned('quote-2', 'user-2'));
   });
 });
 
