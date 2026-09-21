@@ -41,6 +41,7 @@ test('define navegación semántica, editor accesible y confirmación de envío'
   const links = [...documentRoot.querySelectorAll('header nav a')].map((link) => link.textContent.trim());
   assert.deepEqual(links, ['Inicio', 'Mi cuenta', 'Mis cotizaciones']);
   assert.ok(documentRoot.querySelector('[data-quote-list]'));
+  assert.equal(documentRoot.querySelector('[data-create-quote]').textContent.trim(), 'Nueva cotización');
   assert.ok(documentRoot.querySelector('[data-quote-editor]'));
   assert.ok(documentRoot.querySelector('label[for="quote-phone"]'));
   assert.ok(documentRoot.querySelector('label[for="quote-company"]'));
