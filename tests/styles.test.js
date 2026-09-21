@@ -111,6 +111,7 @@ test('presenta los estados interactivos de navegación, portafolio y formulario'
   assert.match(mobileCss, /#primary-navigation\[hidden\]\s*\{/i);
   assert.match(css, /\[data-filter\]\[aria-pressed="true"\]\s*\{/i);
   assert.match(css, /\[aria-current="location"\]\s*\{/i);
+  assert.match(css, /body\s*>\s*header\s*\[aria-current="page"\]\s*\{/i);
   assert.match(css, /\.field-error\s*\{/i);
   assert.match(css, /\[aria-invalid="true"\]\s*\{[^}]*border-color:/is);
   assert.match(css, /#portfolio-dialog\s*\{[^}]*position:\s*fixed/is);

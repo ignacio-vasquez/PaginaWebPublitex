@@ -58,6 +58,15 @@ test('ofrece un regreso explícito al inicio desde el encabezado de la cuenta', 
   assert.equal(homeLink.getAttribute('href'), 'index.html#inicio');
 });
 
+test('mantiene la navegación del encabezado en el orden inicio, gestión y cuenta', () => {
+  const links = [...accessDom().window.document.querySelectorAll('header > a')];
+
+  assert.deepEqual(links.map((link) => link.hasAttribute('data-home-link') ? 'home' : link.hasAttribute('data-project-link') ? 'project' : 'session'), [
+    'home', 'project', 'session',
+  ]);
+  assert.equal(links.at(-1).getAttribute('aria-current'), 'page');
+});
+
 test('registro exitoso limpia contraseñas y muestra el perfil', async () => {
   const dom = accessDom();
   const { initAccessPage } = await import('../js/acceso.js');

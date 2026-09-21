@@ -1491,7 +1491,7 @@ legend {
   color: #fff;
 }
 
-body > header nav [aria-current="page"] {
+body > header [aria-current="page"] {
   text-decoration: underline;
   text-decoration-color: var(--color-accent-dark);
   text-decoration-thickness: 0.18em;
