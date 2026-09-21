@@ -134,7 +134,7 @@ test('autosave recorta detalles y conserva los valores visibles si falla', async
 test('la confirmación atrapa el foco, lo restaura y vuelve la cotización de solo lectura', async () => {
   const api = async (url, options = {}) => {
     if (url === '/api/auth/session') return json({ authenticated: true, user: {} });
-    if (url === '/api/quotes') return json([draft]);
+    if (url === '/api/quotes') return json([{ ...draft, phone: '+56 9 1234 5678' }]);
     if (url.endsWith('/submit')) return json({ ...draft, status: 'submitted', submittedAt: 2 });
     throw new Error(`${options.method} ${url}`);
   };
@@ -154,4 +154,140 @@ test('la confirmación atrapa el foco, lo restaura y vuelve la cotización de so
   assert.equal(documentRoot.querySelector('[data-quote-editor]').dataset.status, 'submitted');
   assert.equal(documentRoot.querySelector('[data-quote-phone]').disabled, true);
   assert.equal(documentRoot.activeElement, submit);
+});
+
+
+test('indica el teléfono faltante antes de abrir la confirmación', async () => {
+  const { dom } = await init({ api: async (url) => {
+    if (url === '/api/auth/session') return json({ authenticated: true });
+    if (url === '/api/quotes') return json([draft]);
+    throw new Error(url);
+  } });
+  const doc = dom.window.document;
+  doc.querySelector('[data-submit-quote]').click();
+  assert.equal(doc.querySelector('[data-submit-dialog]').hidden, true);
+  assert.equal(doc.activeElement, doc.querySelector('[data-quote-phone]'));
+  assert.match(doc.querySelector('[data-quote-page-status]').textContent, /Ingresa un teléfono/);
+});
+
+test('espera el autoguardado y evita enviar cuando los detalles no se guardaron', async () => {
+  let finishSave;
+  let submissions = 0;
+  const { dom } = await init({ api: async (url, options = {}) => {
+    if (url === '/api/auth/session') return json({ authenticated: true });
+    if (url === '/api/quotes') return json([draft]);
+    if (options.method === 'PATCH') return new Promise((resolve) => { finishSave = resolve; });
+    if (url.endsWith('/submit')) { submissions += 1; return json({ ...draft, status: 'submitted' }); }
+    throw new Error(url);
+  } });
+  const doc = dom.window.document;
+  const phone = doc.querySelector('[data-quote-phone]');
+  phone.value = '+56 9 1234 5678';
+  phone.dispatchEvent(new dom.window.Event('change', { bubbles: true }));
+  await new Promise(setImmediate);
+  doc.querySelector('[data-submit-quote]').click();
+  doc.querySelector('[data-confirm-submit]').click();
+  await new Promise(setImmediate);
+  assert.equal(submissions, 0);
+  finishSave(json({ error: 'El teléfono no es válido.' }, 400));
+  await new Promise(setImmediate);
+  assert.equal(submissions, 0);
+  assert.match(doc.querySelector('[data-quote-page-status]').textContent, /corrige|guardar/i);
+  assert.equal(phone.disabled, false);
+  assert.equal(doc.querySelector('[data-quote-company]').disabled, false);
+});
+
+
+test('envía un teléfono local válido después de completar el autoguardado pendiente', async () => {
+  let finishSave;
+  let savedPhone = '';
+  let submissions = 0;
+  const { dom } = await init({ api: async (url, options = {}) => {
+    if (url === '/api/auth/session') return json({ authenticated: true });
+    if (url === '/api/quotes') return json([draft]);
+    if (options.method === 'PATCH') return new Promise((resolve) => {
+      finishSave = () => {
+        savedPhone = JSON.parse(options.body).phone;
+        resolve(json({ ...draft, phone: savedPhone }));
+      };
+    });
+    if (url.endsWith('/submit')) {
+      assert.equal(savedPhone, '912345678');
+      submissions += 1;
+      return json({ ...draft, phone: savedPhone, status: 'submitted' });
+    }
+    throw new Error(url);
+  } });
+  const doc = dom.window.document;
+  const phone = doc.querySelector('[data-quote-phone]');
+  phone.value = '912345678';
+  phone.dispatchEvent(new dom.window.Event('change', { bubbles: true }));
+  await new Promise(setImmediate);
+  doc.querySelector('[data-submit-quote]').click();
+  doc.querySelector('[data-confirm-submit]').click();
+  await new Promise(setImmediate);
+  assert.equal(submissions, 0);
+  finishSave();
+  await new Promise(setImmediate);
+  assert.equal(submissions, 1);
+  assert.equal(doc.querySelector('[data-quote-editor]').dataset.status, 'submitted');
+});
+
+
+test('un error de guardado en otro borrador no bloquea una cotización válida', async () => {
+  const other = { ...draft, id: 'quote-2', phone: '912345678' };
+  let submittedId;
+  const { dom } = await init({ api: async (url, options = {}) => {
+    if (url === '/api/auth/session') return json({ authenticated: true });
+    if (url === '/api/quotes') return json([draft, other]);
+    if (options.method === 'PATCH') return json({ error: 'El teléfono no es válido.' }, 400);
+    if (url.endsWith('/submit')) { submittedId = url; return json({ ...other, status: 'submitted' }); }
+    throw new Error(url);
+  } });
+  const doc = dom.window.document;
+  const phone = doc.querySelector('[data-quote-phone]');
+  phone.value = 'incorrecto';
+  phone.dispatchEvent(new dom.window.Event('change', { bubbles: true }));
+  await new Promise(setImmediate);
+  doc.querySelector('[data-quote-id="quote-2"] [data-select-quote]').click();
+  doc.querySelector('[data-submit-quote]').click();
+  doc.querySelector('[data-confirm-submit]').click();
+  await new Promise(setImmediate);
+  assert.equal(submittedId, '/api/quotes/quote-2/submit');
+});
+
+
+test('el historial identifica cada cotización y Ver estado muestra su progreso real', async () => {
+  const sent = { ...draft, id: 'quote-2', code: 'COT-000002', status: 'submitted', createdAt: 2000, submittedAt: 3000 };
+  const first = { ...draft, code: 'COT-000001', createdAt: 1000 };
+  const { dom } = await init({ api: async (url) => {
+    if (url === '/api/auth/session') return json({ authenticated: true });
+    if (url === '/api/quotes') return json([first, sent]);
+    throw new Error(url);
+  } });
+  const doc = dom.window.document;
+  const entries = [...doc.querySelectorAll('[data-quote-list] > li')];
+  assert.match(entries[0].textContent, /COT-000002/);
+  assert.match(entries[0].textContent, /Enviada/);
+  assert.equal(entries[0].querySelector('time').dateTime, '1970-01-01T00:00:02.000Z');
+  entries[0].querySelector('[data-view-quote-status]').click();
+  const tracking = doc.querySelector('[data-quote-tracking]');
+  assert.equal(tracking.hidden, false);
+  assert.match(doc.querySelector('#quote-editor-title').textContent, /COT-000002/);
+  assert.equal(tracking.querySelector('[aria-current="step"] [data-step-label]').textContent, 'Enviada');
+  const steps = [...tracking.querySelectorAll('[data-step-label]')].map((step) => step.textContent);
+  assert.deepEqual(steps, ['Borrador', 'Enviada', 'En revisión', 'Aceptada', 'Facturada', 'Lista', 'Entregada']);
+  assert.equal(tracking.querySelectorAll('[data-step-state="pending"]').length, 5);
+  assert.equal(doc.activeElement.id, 'quote-tracking-title');
+  assert.equal(doc.querySelectorAll('[data-select-quote][aria-current="true"]').length, 1);
+  doc.querySelectorAll('[data-view-quote-status]')[1].click();
+  assert.equal(tracking.querySelector('[aria-current="step"] [data-step-label]').textContent, 'Borrador');
+  assert.match(doc.querySelector('#quote-editor-title').textContent, /COT-000001/);
+});
+
+test('el historial vacío explica cómo comenzar sin mostrar estados inventados', async () => {
+  const { dom } = await init({ api: async (url) => json(url === '/api/auth/session' ? { authenticated: true } : []) });
+  const doc = dom.window.document;
+  assert.equal(doc.querySelector('[data-quote-editor]').hidden, true);
+  assert.match(doc.querySelector('[data-quote-list]').textContent, /Aún no tienes cotizaciones/);
 });

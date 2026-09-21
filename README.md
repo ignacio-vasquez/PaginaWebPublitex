@@ -40,7 +40,7 @@ Los usuarios y las sesiones se guardan en SQLite y sobreviven al reinicio del se
 
 Los precios del simulador son valores demostrativos y el servidor los calcula usando el catálogo almacenado en SQLite; el navegador nunca decide el precio. La rotulación de vehículos se muestra como **requiere evaluación**, sin inventar un total.
 
-Para guardar una selección es necesario registrarse o iniciar sesión. Cada cliente dispone de **Mis cotizaciones**, donde puede mantener borradores con varios productos, datos de contacto y observaciones. Los borradores se autoguardan en SQLite, por lo que sobreviven a recargas y reinicios del servidor. Después de enviar una cotización queda disponible solo para lectura durante esta etapa.
+Sin sesión, los accesos ofrecen **Simular proyecto**: calcular no guarda simulaciones en el navegador ni crea registros en SQLite. Con sesión, **Cotizar proyecto** abre la página independiente `cotizacion.html`, con accesos a Inicio, Mi cuenta y Mis cotizaciones. Calcular tampoco guarda un borrador en esta página; **Guardar producto y continuar** lleva la selección a Mis cotizaciones para guardarla y completar el envío. Cada cliente dispone de **Mis cotizaciones**, donde puede mantener borradores con varios productos, datos de contacto y observaciones. Los borradores se autoguardan en SQLite, por lo que sobreviven a recargas y reinicios del servidor. Después de enviar una cotización queda disponible solo para lectura durante esta etapa. El historial lateral muestra un código único permanente (`COT-000001`), fecha, productos y estado, ordenado desde la creación más reciente. **Ver estado** abre el seguimiento de la cotización seleccionada. Borrador y Enviada son los estados operativos actuales; las etapas posteriores se muestran pendientes hasta implementar la gestión del equipo. La migración `003_quote_codes.sql` asigna códigos también a las cotizaciones existentes, conservando sus identificadores y datos.
 
 La tabla de precios definitiva de la empresa y un editor administrativo del catálogo quedan para una etapa futura.
 
@@ -63,3 +63,14 @@ npm test
 ```
 
 Este comando ejecuta todas las comprobaciones automatizadas.
+
+
+## Superadmin y gestión
+
+La cuenta con rol real `superadmin` ve el acceso **Superadmin** en la barra. Su página muestra dos pestañas: Trabajadores, con jefes primero, y Clientes. **Actuar como** permite operar con una persona concreta sin abrir otra sesión; la cuenta original sigue identificada en el registro de acciones. Clientes incluye también las cotizaciones que el propio superadmin creó antes de elegir personas. El cambio afecta solo a esa sesión y se elimina al cerrar sesión. **Cambiar persona** vuelve al directorio. Los usuarios normales no pueden activarlo. El registro público siempre crea clientes; el rol privilegiado se asigna administrativamente en la base de datos, nunca por un correo enviado desde el navegador.
+
+El superadmin puede actuar como cliente para crear y enviar una cotización de esa cuenta, elegir un jefe para revisarla, aceptarla y registrar la factura, y elegir un trabajador para marcarla lista. Desde la facturación todos los trabajadores ven el proyecto; el jefe confirma la entrega. `gestion.html` muestra las acciones según el rol y el estado, además de las horas de facturación y término.
+
+Al confirmar la entrega, la cotización sale de la lista de proyectos en proceso y queda en `facturas.html`, disponible para el jefe y el superadmin. El archivo agrupa por año de facturación desde 2005 hasta el año actual, agrega los años nuevos automáticamente, ordena de más reciente a más antiguo y permite buscar por fecha, número de factura, cliente y detalles del trabajo. El archivo conserva los datos originales de la cotización; la estimación mostrada no reemplaza el monto de una factura emitida.
+
+El servidor expone únicamente las páginas públicas y recursos de `assets/`, `css/` y `js/`; las bases, respaldos y archivos internos no se sirven por HTTP. Este entorno local usa contraseña y sesión, sin doble factor.

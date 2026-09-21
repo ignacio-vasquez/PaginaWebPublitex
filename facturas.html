@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="robots" content="noindex">
+    <link rel="stylesheet" href="css/styles.css">
+    <title>Facturas realizadas | Publitex</title>
+  </head>
+  <body class="quote-page">
+    <header>
+      <p><a href="index.html#inicio" aria-label="Publitex, ir al inicio">Publitex</a></p>
+      <nav aria-label="Navegación de facturas"><ul>
+        <li><a href="index.html#inicio">Inicio</a></li>
+        <li><a data-project-link href="gestion.html">Gestión</a></li>
+        <li><a data-session-link href="acceso.html">Mi cuenta</a></li>
+      </ul></nav>
+    </header>
+    <main data-invoice-page>
+      <section aria-labelledby="invoice-title">
+        <p class="eyebrow">Archivo de proyectos</p>
+        <h1 id="invoice-title">Facturas realizadas</h1>
+        <p>Trabajos entregados, organizados por año de facturación.</p>
+        <p><a href="gestion.html">← Volver a proyectos en proceso</a></p>
+        <p data-invoice-status role="status" aria-live="polite">Cargando facturas…</p>
+        <div data-invoice-content hidden>
+          <h2>Años</h2>
+          <div data-invoice-years class="invoice-years" aria-label="Años de facturación"></div>
+          <div class="invoice-search">
+            <label for="invoice-search-input">Buscar factura en el año elegido</label>
+            <div class="invoice-search-control"><span aria-hidden="true">⌕</span><input id="invoice-search-input" data-invoice-search type="search" placeholder="Ej.: 01 sept 2026, cliente o número" autocomplete="off"></div>
+          </div>
+          <h2 data-invoice-year-title></h2>
+          <div data-invoice-list class="invoice-list"></div>
+        </div>
+      </section>
+    </main>
+    <footer><p><strong>Publitex</strong> — Publicidad visual</p><a href="gestion.html">Volver a gestión</a></footer>
+    <script type="module" src="js/app.js"></script>
+  </body>
+</html>

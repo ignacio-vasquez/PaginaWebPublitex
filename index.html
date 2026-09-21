@@ -9,7 +9,7 @@
   </head>
   <body>
     <header>
-      <p><a href="#inicio" aria-label="Publitexweb, ir al inicio">Publitexweb</a></p>
+      <p><a href="#inicio" aria-label="Publitex, ir al inicio">Publitex</a></p>
       <button id="menu-button" type="button" aria-expanded="false" aria-controls="primary-navigation" hidden>
         <span aria-hidden="true">☰</span><span>Menú</span>
       </button>
@@ -19,21 +19,22 @@
           <li><a data-section-link href="#servicios">Servicios</a></li>
           <li><a data-section-link href="#trabajos">Trabajos</a></li>
           <li><a data-section-link href="#empresa">Nosotros</a></li>
+          <li><a data-section-link href="#cotizacion">Simular proyecto</a></li>
           <li><a data-section-link href="#contacto">Contacto</a></li>
         </ul>
       </nav>
       <a data-session-link href="acceso.html">Ingresar</a>
-      <a href="#cotizacion">Cotizar proyecto</a>
+      <a data-project-link href="index.html#cotizacion">Simular proyecto</a>
     </header>
 
-    <main id="inicio">
-      <section class="home-hero" aria-labelledby="titulo-principal">
+    <main>
+      <section id="inicio" class="home-hero" aria-labelledby="titulo-principal">
         <p>Diseño · Fabricación · Instalación</p>
         <h1 id="titulo-principal">Hacemos que tu negocio destaque</h1>
         <p>Letreros luminosos, rotulación vehicular y soluciones adhesivas diseñadas para hacer visible tu marca.</p>
         <img src="assets/trabajo-letrero.svg" alt="Imagen provisional de un letrero luminoso instalado en la fachada de un negocio">
         <p>
-          <a href="#cotizacion">Solicitar cotización</a>
+          <a data-project-link href="index.html#cotizacion">Simular proyecto</a>
           <a href="#trabajos">Ver nuestros trabajos</a>
         </p>
       </section>
@@ -109,7 +110,7 @@
 
       <section id="cotizacion" aria-labelledby="titulo-cotizacion">
         <h2 id="titulo-cotizacion">Simula tu proyecto</h2>
-        <p>Elige opciones disponibles y obtén una estimación demostrativa antes de crear tu cotización.</p>
+        <p>Prueba productos y opciones para obtener una estimación rápida. Esta simulación no se guarda.</p>
         <div data-simulator role="form" aria-labelledby="titulo-cotizacion">
           <p><label for="simulator-product">Producto</label><select id="simulator-product" data-simulator-product><option value="">Cargando productos…</option></select></p>
           <p><label for="simulator-material">Material</label><select id="simulator-material" data-simulator-material disabled></select></p>
@@ -123,7 +124,7 @@
             <h3 id="estimate-title">Tu estimación</h3>
             <p data-estimate-summary></p><p data-estimate-total></p>
             <p data-estimate-disclaimer>Valor referencial sujeto a confirmación por la empresa</p>
-            <button type="button" data-quote-project>Cotizar este proyecto</button>
+            <button type="button" data-quote-project hidden>Cotizar este proyecto</button>
           </section>
         </div>
       </section>
@@ -131,6 +132,7 @@
       <section id="contacto" aria-labelledby="titulo-contacto">
         <h2 id="titulo-contacto">Contacto</h2>
         <p>Datos definitivos pendientes de confirmar con la empresa.</p>
+        <a class="contact-cta" data-project-link href="index.html#cotizacion">Simular proyecto</a>
       </section>
     </main>
 

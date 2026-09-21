@@ -45,8 +45,9 @@ test('expone el catálogo activo sin exigir una sesión', async () => {
   });
 });
 
-test('calcula la estimación pública en el servidor e ignora un precio recibido', async () => {
-  await withCatalogServer(async ({ baseUrl }) => {
+test('calcula la estimación pública sin escribir en SQLite e ignora un precio recibido', async () => {
+  await withCatalogServer(async ({ baseUrl, runtime }) => {
+    const changesBefore = runtime.database.prepare('SELECT total_changes() AS count').get().count;
     const response = await fetch(`${baseUrl}/api/catalog/estimate`, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
@@ -64,6 +65,7 @@ test('calcula la estimación pública en el servidor e ignora un precio recibido
     const body = await response.json();
     assert.equal(body.estimatedTotal, 64000);
     assert.equal(body.selection.estimatedTotal, undefined);
+    assert.equal(runtime.database.prepare('SELECT total_changes() AS count').get().count, changesBefore);
   });
 });
 

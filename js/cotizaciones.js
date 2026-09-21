@@ -1,4 +1,5 @@
 import { HANDOFF_KEY } from './simulador.js';
+import { quoteStatusLabel, renderQuoteProgress } from './estado-cotizacion.js';
 
 function successful(response) {
   return response && (response.ok === undefined ? response.status < 400 : response.ok);
@@ -18,6 +19,7 @@ export function initQuotePage(
   if (!page || typeof api !== 'function') return { ready: Promise.resolve() };
   const list = page.querySelector('[data-quote-list]');
   const editor = page.querySelector('[data-quote-editor]');
+  const tracking = page.querySelector('[data-quote-tracking]');
   const phone = page.querySelector('[data-quote-phone]');
   const company = page.querySelector('[data-quote-company]');
   const items = page.querySelector('[data-quote-items]');
@@ -34,6 +36,7 @@ export function initQuotePage(
   let saveQueue = Promise.resolve();
   let editVersion = 0;
   let lastSave = null;
+  let lastSaveError = null;
   let dialogTrigger = null;
 
   async function request(url, options = {}) {
@@ -70,17 +73,69 @@ export function initQuotePage(
 
   function renderList() {
     list.replaceChildren();
-    for (const quote of quotes) {
+    if (!quotes.length) {
+      const empty = documentRoot.createElement('li');
+      empty.textContent = 'Aún no tienes cotizaciones. Crea un borrador para comenzar.';
+      list.append(empty);
+    }
+    const history = [...quotes].sort((a, b) => b.createdAt - a.createdAt
+      || (b.code || b.id).localeCompare(a.code || a.id, 'es', { numeric: true }));
+    for (const quote of history) {
       const item = documentRoot.createElement('li');
+      item.dataset.quoteId = quote.id;
+      item.className = 'quote-history-entry';
+      const code = documentRoot.createElement('strong');
+      code.textContent = quote.code || quote.id;
+      const date = documentRoot.createElement('time');
+      date.dateTime = new Date(quote.createdAt).toISOString();
+      date.textContent = formatDate(quote.createdAt);
+      const status = documentRoot.createElement('span');
+      status.className = 'quote-status-badge';
+      status.textContent = quoteStatusLabel(quote.status);
+      const count = documentRoot.createElement('p');
+      count.textContent = `${quote.items.length} producto${quote.items.length === 1 ? '' : 's'}`;
+      const selectQuote = (showTracking) => {
+        const next = quotes.find((candidate) => candidate.id === quote.id);
+        if (!next) return;
+        const changed = current?.id !== next.id;
+        current = next;
+        tracking.hidden = !showTracking;
+        if (changed) renderEditor();
+        else renderTracking();
+        renderList();
+        page.querySelector(showTracking ? '#quote-tracking-title' : '#quote-editor-title').focus();
+      };
       const select = button(
-        `${quote.status === 'draft' ? 'Borrador' : 'Enviada'} · ${quote.items.length} producto${quote.items.length === 1 ? '' : 's'}`,
+        'Ver cotización',
         'data-select-quote',
-        () => { current = quote; renderEditor(); },
+        () => selectQuote(false),
       );
-      if (current?.id === quote.id) select.setAttribute('aria-current', 'true');
-      item.append(select);
+      select.setAttribute('aria-label', `Ver cotización ${code.textContent}`);
+      const viewStatus = button('Ver estado', 'data-view-quote-status', () => selectQuote(true));
+      viewStatus.setAttribute('aria-label', `Ver estado de ${code.textContent}`);
+      if (current?.id === quote.id) {
+        select.setAttribute('aria-current', 'true');
+        item.dataset.selected = 'true';
+      }
+      const actions = documentRoot.createElement('div');
+      actions.className = 'quote-history-actions';
+      actions.append(select, viewStatus);
+      item.append(code, date, status, count, actions);
       list.append(item);
     }
+  }
+
+  function formatDate(timestamp) {
+    return new Intl.DateTimeFormat('es-CL', {
+      day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit',
+    }).format(new Date(timestamp));
+  }
+
+  function renderTracking() {
+    renderQuoteProgress(tracking, current);
+    const dates = [`Creada: ${formatDate(current.createdAt)}`];
+    if (current.submittedAt != null) dates.push(`Enviada: ${formatDate(current.submittedAt)}`);
+    tracking.querySelector('[data-tracking-dates]').textContent = dates.join(' · ');
   }
 
   async function deleteItem(itemId, control) {
@@ -121,6 +176,9 @@ export function initQuotePage(
     if (!current) { editor.hidden = true; return; }
     editor.hidden = false;
     editor.dataset.status = current.status;
+    page.querySelector('#quote-editor-title').textContent = `Cotización ${current.code || current.id}`;
+    page.querySelector('[data-quote-current-status]').textContent = quoteStatusLabel(current.status);
+    renderTracking();
     phone.value = current.phone || '';
     company.value = current.company || '';
     const editable = current.status === 'draft';
@@ -150,11 +208,12 @@ export function initQuotePage(
     total.textContent = current.hasEvaluation
       ? `Total parcial: ${money(current.estimatedTotal)} · Hay productos pendientes de evaluación`
       : `Total estimado: ${money(current.estimatedTotal)}`;
-    saveStatus.textContent = editable ? 'Borrador guardado' : 'Cotización enviada · Solo lectura';
+    saveStatus.textContent = editable ? 'Borrador guardado' : `${quoteStatusLabel(current.status)} · Solo lectura`;
     retry.hidden = true;
   }
 
   function saveDetails() {
+    const quoteId = current.id;
     const version = ++editVersion;
     const details = { phone: phone.value.trim(), company: company.value.trim() };
     lastSave = details;
@@ -162,14 +221,18 @@ export function initQuotePage(
     retry.hidden = true;
     const perform = async () => {
       try {
-        const saved = await request(`/api/quotes/${current.id}`, {
+        const saved = await request(`/api/quotes/${quoteId}`, {
           method: 'PATCH', headers: { 'content-type': 'application/json' }, body: JSON.stringify(details),
         });
-        current = saved;
+        if (current.id === quoteId) current = saved;
         quotes = quotes.map((quote) => quote.id === saved.id ? saved : quote);
-        if (version === editVersion) saveStatus.textContent = 'Borrador guardado';
+        if (version === editVersion && current.id === quoteId) {
+          lastSaveError = null;
+          saveStatus.textContent = 'Borrador guardado';
+        }
       } catch (error) {
-        if (version === editVersion) {
+        if (version === editVersion && current.id === quoteId) {
+          lastSaveError = { quoteId, error };
           saveStatus.textContent = error.message;
           retry.hidden = false;
         }
@@ -198,6 +261,12 @@ export function initQuotePage(
     dialogTrigger?.focus();
   }
   submitButton.addEventListener('click', () => {
+    pageStatus.textContent = '';
+    if (!phone.value.trim()) {
+      pageStatus.textContent = 'Ingresa un teléfono de contacto antes de enviar la cotización.';
+      phone.focus();
+      return;
+    }
     dialogTrigger = submitButton;
     dialog.hidden = false;
     documentRoot.body.classList.add('dialog-open');
@@ -215,13 +284,29 @@ export function initQuotePage(
   });
   confirmSubmit.addEventListener('click', async () => {
     confirmSubmit.disabled = true;
+    phone.disabled = true;
+    company.disabled = true;
     try {
+      await saveQueue;
+      if (lastSaveError?.quoteId !== current.id && (phone.value.trim() !== (current.phone || '')
+        || company.value.trim() !== (current.company || ''))) {
+        await saveDetails();
+      }
+      if (lastSaveError?.quoteId === current.id) {
+        closeDialog();
+        pageStatus.textContent = 'No se envió la cotización. Corrige los datos o reintenta el guardado antes de enviar.';
+        return;
+      }
       const submitted = await request(`/api/quotes/${current.id}/submit`, { method: 'POST' });
       closeDialog();
       replaceCurrent(submitted);
     } catch (error) {
       pageStatus.textContent = error.message;
-    } finally { confirmSubmit.disabled = false; }
+    } finally {
+      confirmSubmit.disabled = false;
+      phone.disabled = current?.status !== 'draft';
+      company.disabled = current?.status !== 'draft';
+    }
   });
 
   const ready = (async () => {
@@ -248,7 +333,7 @@ export function initQuotePage(
           quotes.unshift(target);
           storage?.removeItem(HANDOFF_KEY);
         } catch (error) {
-          pageStatus.textContent = `${error.message} Vuelve al simulador para revisar la selección.`;
+          pageStatus.textContent = `${error.message} Vuelve a Cotización para revisar la selección.`;
         }
       }
       current = quotes.find((quote) => quote.status === 'draft') || quotes[0] || null;

@@ -35,8 +35,10 @@ async function submit(kind, search) {
   return navigations;
 }
 
-test('login y registro regresan únicamente a cotizaciones.html', async () => {
+test('login y registro permiten volver a las páginas de cotización', async () => {
   assert.deepEqual(await submit('login', '?returnTo=cotizaciones.html'), ['cotizaciones.html']);
+  assert.deepEqual(await submit('login', '?returnTo=cotizacion.html'), ['cotizacion.html']);
+  assert.deepEqual(await submit('register', '?returnTo=cotizacion.html'), ['cotizacion.html']);
   assert.deepEqual(await submit('register', '?returnTo=cotizaciones.html'), ['cotizaciones.html']);
 });
 

@@ -54,8 +54,8 @@ function createQuoteService({ quotes, catalogService, createId }) {
       return quotes.findOwned(id, userId);
     },
 
-    createDraft(userId) {
-      return quotes.createDraft({ id: createId(), userId });
+    createDraft(userId, audit) {
+      return quotes.createDraft({ id: createId(), userId, ...audit });
     },
 
     async saveDetails(id, userId, details = {}) {
@@ -81,7 +81,7 @@ function createQuoteService({ quotes, catalogService, createId }) {
       return quotes.deleteItem({ quoteId, itemId, userId });
     },
 
-    async submit(id, userId) {
+    async submit(id, userId, audit) {
       const quote = await quotes.findOwned(id, userId);
       if (!quote) return null;
       if (quote.status !== 'draft') {
@@ -91,7 +91,7 @@ function createQuoteService({ quotes, catalogService, createId }) {
         throw publicError('QUOTE_EMPTY', 'Agrega al menos un producto antes de enviar.');
       }
       normalizePhone(quote.phone, true);
-      return quotes.submit({ id, userId });
+      return quotes.submit({ id, userId, ...audit });
     },
   };
 }

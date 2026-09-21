@@ -42,3 +42,20 @@ test('cambia Ingresar a Mi cuenta solo con una sesión autenticada', async () =>
   await new Promise(setImmediate);
   assert.equal(anonymousDom.window.document.querySelector('[data-session-link]').textContent, 'Ingresar');
 });
+
+
+test('las acciones cambian entre simulación pública y cotización con sesión', async () => {
+  const { initSessionNavigation } = await import('../js/sesion-navegacion.js');
+  for (const authenticated of [false, true]) {
+    const dom = createDom(require('node:fs').readFileSync(require('node:path').join(__dirname, '..', 'index.html'), 'utf8'));
+    initSessionNavigation(dom.window.document, async () => new Response(JSON.stringify({ authenticated })));
+    await new Promise(setImmediate);
+    const actions = [...dom.window.document.querySelectorAll('[data-project-link]')];
+    assert.ok(actions.length >= 2);
+    for (const action of actions) {
+      assert.equal(action.textContent, authenticated ? 'Cotizar proyecto' : 'Simular proyecto');
+      assert.equal(action.getAttribute('href'), authenticated ? 'cotizacion.html' : 'index.html#cotizacion');
+    }
+    assert.equal(dom.window.document.querySelector('[data-quote-project]').hidden, !authenticated);
+  }
+});

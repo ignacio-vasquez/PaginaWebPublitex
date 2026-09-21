@@ -73,8 +73,16 @@ function createAuthRouter({ authService, cookieSecure = false, loginLimiter } = 
 
   router.get('/session', async (request, response, next) => {
     try {
-      const user = await authService.getSessionUser(getSessionToken(request));
-      return response.status(200).json(user ? { authenticated: true, user } : { authenticated: false });
+      const context = typeof authService.getSessionContext === 'function'
+        ? await authService.getSessionContext(getSessionToken(request))
+        : { user: await authService.getSessionUser(getSessionToken(request)) };
+      const { user } = context;
+      const result = user ? { authenticated: true, user } : { authenticated: false };
+      if (context.realUser?.role === 'superadmin') {
+        result.realUser = context.realUser;
+        result.simulation = context.simulation;
+      }
+      return response.status(200).json(result);
     } catch (error) {
       return next(error);
     }

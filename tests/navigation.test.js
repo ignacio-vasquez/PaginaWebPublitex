@@ -114,3 +114,52 @@ test('la navegación activa no falla sin IntersectionObserver', async () => {
 
   assert.doesNotThrow(() => initNavigation(dom.window.document, undefined));
 });
+
+test('Inicio observa solo la portada y se vuelve a activar al regresar desde Servicios', async () => {
+  const dom = loadHomepageDom();
+  const doc = dom.window.document;
+  const { initNavigation } = await import('../js/navegacion.js');
+  const observed = [];
+  let notify;
+  class Observer {
+    constructor(callback) { notify = callback; }
+    observe(element) { observed.push(element); }
+  }
+  initNavigation(doc, Observer);
+  const home = doc.querySelector('#inicio');
+  const services = doc.querySelector('#servicios');
+  assert.equal(home.contains(services), false, 'Inicio no debe abarcar Servicios');
+  assert.equal(observed.includes(doc.querySelector('.home-hero')), true);
+
+  for (const target of [home, services, home]) {
+    notify([{ target, isIntersecting: true }]);
+    const active = doc.querySelectorAll('[data-section-link][aria-current="location"]');
+    assert.equal(active.length, 1);
+    assert.equal(active[0].getAttribute('href'), `#${target.id}`);
+  }
+  dom.window.close();
+});
+
+test('Contacto queda activo al final de la página aunque el simulador siga en la franja del observador', async () => {
+  const dom = loadHomepageDom();
+  const doc = dom.window.document;
+  const win = dom.window;
+  Object.defineProperty(doc.documentElement, 'scrollHeight', { value: 3000 });
+  Object.defineProperty(win, 'innerHeight', { value: 900 });
+  Object.defineProperty(win, 'scrollY', { value: 2100, configurable: true });
+  let notify;
+  class Observer {
+    constructor(callback) { notify = callback; }
+    observe() {}
+  }
+  const { initNavigation } = await import('../js/navegacion.js');
+  initNavigation(doc, Observer);
+  notify([{ target: doc.querySelector('#cotizacion'), isIntersecting: true }]);
+  assert.equal(doc.querySelector('[data-section-link][aria-current]').hash, '#contacto');
+  doc.querySelector('#cotizacion').getBoundingClientRect = () => ({ top: 200 });
+  doc.querySelector('#contacto').getBoundingClientRect = () => ({ top: 800 });
+  Object.defineProperty(win, 'scrollY', { value: 1500 });
+  win.dispatchEvent(new win.Event('scroll'));
+  assert.equal(doc.querySelector('[data-section-link][aria-current]').hash, '#cotizacion');
+  dom.window.close();
+});

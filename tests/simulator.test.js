@@ -39,11 +39,14 @@ function response(body, ok = true) {
 }
 
 async function setup(overrides = {}) {
-  const dom = fixture();
+  const dom = overrides.quotation
+    ? new JSDOM(require('node:fs').readFileSync(require('node:path').join(__dirname, '..', 'cotizacion.html'), 'utf8'), { url: 'http://localhost/cotizacion.html' })
+    : fixture();
   const calls = [];
   const api = overrides.api || (async (url, options) => {
     calls.push({ url, options });
     if (url === '/api/catalog') return response(catalog);
+    if (url === '/api/auth/session') return response({ authenticated: overrides.authenticated === true });
     return response({
       selection: JSON.parse(options.body),
       summary: { product: 'Letrero rectangular', material: 'Acrílico', size: '50 × 30 cm', quantity: '1 unidad', extras: ['Iluminación'] },
@@ -127,8 +130,8 @@ test('conserva la selección cuando la API rechaza la estimación', async () => 
   assert.equal(documentRoot.querySelector('[data-simulator-status]').textContent, 'La selección cambió.');
 });
 
-test('traspasa únicamente los campos permitidos y navega al acceso', async () => {
-  const { dom, stored, navigations } = await setup();
+test('con sesión traspasa únicamente los campos permitidos a la página de cotización', async () => {
+  const { dom, stored, navigations } = await setup({ authenticated: true });
   const documentRoot = dom.window.document;
   choose(documentRoot, '[data-simulator-product]', 'sign-rect');
   choose(documentRoot, '[data-simulator-material]', 'acrylic');
@@ -139,10 +142,85 @@ test('traspasa únicamente los campos permitidos y navega al acceso', async () =
   await new Promise((resolve) => setTimeout(resolve, 0));
   documentRoot.querySelector('[data-quote-project]').click();
 
-  assert.equal(stored[0][0], 'publitex_quote_handoff_v1');
+  await new Promise(setImmediate);
+  assert.equal(stored[0][0], 'publitex_quote_selection_v1');
   assert.deepEqual(JSON.parse(stored[0][1]), {
     productId: 'sign-rect', materialId: 'acrylic', sizeId: '50x30',
     quantityId: 'sign-rect-qty-1', extraIds: [], observation: 'Fachada norte',
   });
-  assert.deepEqual(navigations, ['acceso.html?returnTo=cotizaciones.html']);
+  assert.deepEqual(navigations, ['cotizacion.html']);
+});
+
+
+test('una simulación anónima no guarda ni transfiere datos aunque se invoque cotizar', async () => {
+  const { dom, stored, navigations, calls } = await setup();
+  const doc = dom.window.document;
+  choose(doc, '[data-simulator-product]', 'sign-rect');
+  choose(doc, '[data-simulator-material]', 'acrylic');
+  choose(doc, '[data-simulator-size]', '50x30');
+  choose(doc, '[data-simulator-quantity]', 'sign-rect-qty-1');
+  doc.querySelector('[data-simulator-estimate]').click();
+  await new Promise(setImmediate);
+  assert.equal(doc.querySelector('[data-simulator-result]').hidden, false);
+  assert.deepEqual(stored, []);
+  doc.querySelector('[data-quote-project]').click();
+  await new Promise(setImmediate);
+  assert.deepEqual(stored, []);
+  assert.deepEqual(navigations, []);
+  assert.equal(calls.some(({ url }) => url.startsWith('/api/quotes')), false);
+});
+
+
+test('la página de cotización exige sesión antes de cargar el formulario', async () => {
+  const { dom, navigations, calls, stored } = await setup({ quotation: true });
+  assert.equal(dom.window.document.querySelector('[data-simulator]').hidden, true);
+  assert.deepEqual(navigations, ['acceso.html?returnTo=cotizacion.html']);
+  assert.equal(calls.some(({ url }) => url === '/api/catalog'), false);
+  assert.deepEqual(stored, []);
+});
+
+test('cotización recupera la selección y solo la envía al borrador al guardar explícitamente', async () => {
+  const storage = new JSDOM('', { url: 'http://localhost/' }).window.sessionStorage;
+  storage.setItem('publitex_quote_selection_v1', JSON.stringify({
+    productId: 'sign-rect', materialId: 'acrylic', sizeId: '50x30',
+    quantityId: 'sign-rect-qty-1', extraIds: ['lighting'], observation: 'Fachada',
+  }));
+  const { dom, navigations } = await setup({ quotation: true, authenticated: true, storage });
+  const doc = dom.window.document;
+  assert.equal(doc.querySelector('[data-simulator]').hidden, false);
+  assert.equal(doc.querySelector('h1').textContent, 'Cotización');
+  assert.equal(doc.querySelector('[data-simulator-material]').value, 'acrylic');
+  assert.equal(doc.querySelector('[data-simulator-observation]').value, 'Fachada');
+  assert.equal(doc.querySelector('[data-extra-options] input').checked, true);
+  assert.equal(storage.length, 0);
+  assert.deepEqual(navigations, []);
+  doc.querySelector('[data-simulator-estimate]').click();
+  await new Promise(setImmediate);
+  assert.equal(storage.length, 0);
+  doc.querySelector('[data-quote-project]').click();
+  await new Promise(setImmediate);
+  assert.deepEqual(navigations, ['cotizaciones.html']);
+  assert.equal(JSON.parse(storage.getItem('publitex_quote_handoff_v1')).observation, 'Fachada');
+});
+
+
+test('conserva la selección confirmada aunque se edite durante la consulta de sesión', async () => {
+  let resolveSession;
+  const { dom, stored } = await setup({ api: async (url) => {
+    if (url === '/api/catalog') return response(catalog);
+    if (url === '/api/auth/session') return new Promise((resolve) => { resolveSession = resolve; });
+    return response({ summary: { product: 'Letrero', material: 'Acrílico', size: '50 × 30', quantity: '1', extras: [] }, estimatedTotal: 29000 });
+  } });
+  const doc = dom.window.document;
+  choose(doc, '[data-simulator-product]', 'sign-rect');
+  choose(doc, '[data-simulator-material]', 'acrylic');
+  choose(doc, '[data-simulator-size]', '50x30');
+  choose(doc, '[data-simulator-quantity]', 'sign-rect-qty-1');
+  doc.querySelector('[data-simulator-estimate]').click();
+  await new Promise(setImmediate);
+  doc.querySelector('[data-quote-project]').click();
+  choose(doc, '[data-simulator-product]', 'vehicle-wrap');
+  resolveSession(response({ authenticated: true }));
+  await new Promise(setImmediate);
+  assert.equal(JSON.parse(stored[0][1]).productId, 'sign-rect');
 });

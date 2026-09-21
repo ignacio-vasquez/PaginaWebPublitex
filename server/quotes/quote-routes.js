@@ -9,6 +9,12 @@ function createQuoteRouter({ quoteService, authService }) {
   }
   const router = express.Router();
   router.use(requireUser(authService));
+  router.use((request, response, next) => {
+    if (request.simulation && request.user.role !== 'cliente') {
+      return response.status(403).json({ error: 'Cambia al rol Cliente para gestionar tus cotizaciones.' });
+    }
+    return next();
+  });
 
   function sendResult(response, result, status = 200) {
     if (!result) return response.status(404).json(NOT_FOUND);
@@ -39,7 +45,8 @@ function createQuoteRouter({ quoteService, authService }) {
     response.json(await quoteService.list(request.user.id));
   }));
   router.post('/', action(async (request, response) => {
-    sendResult(response, await quoteService.createDraft(request.user.id), 201);
+    sendResult(response, await quoteService.createDraft(request.user.id, request.simulation
+      ? { effectiveRole: 'cliente', actorId: request.realUser.id } : undefined), 201);
   }));
   router.get('/:id', action(async (request, response) => {
     sendResult(response, await quoteService.get(request.params.id, request.user.id));
@@ -65,7 +72,8 @@ function createQuoteRouter({ quoteService, authService }) {
     ));
   }));
   router.post('/:id/submit', action(async (request, response) => {
-    sendResult(response, await quoteService.submit(request.params.id, request.user.id));
+    sendResult(response, await quoteService.submit(request.params.id, request.user.id, request.simulation
+      ? { effectiveRole: 'cliente', actorId: request.realUser.id } : undefined));
   }));
 
   return router;

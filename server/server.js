@@ -3,6 +3,8 @@ const crypto = require('node:crypto');
 const path = require('node:path');
 const bcrypt = require('bcryptjs');
 const { createApp } = require('./app');
+const { createSimulationService } = require('./superadmin/simulation-service');
+const { createWorkflowService } = require('./quotes/workflow-service');
 const { openDatabase } = require('./database/database');
 const { migrateDatabase } = require('./database/migrate');
 const { createUserRepository } = require('./users/user-repository');
@@ -81,6 +83,11 @@ function createRuntime(options = {}) {
       createId: options.createQuoteId || (() => crypto.randomUUID()),
     }) : null);
 
+  const simulationService = database ? createSimulationService({ database, authService, hashToken: options.hashToken }) : null;
+  if (simulationService) authService.getSessionContext = simulationService.getContext;
+  const workflowService = database && quoteRepository
+    ? createWorkflowService({ database, quotes: quoteRepository, now: options.now }) : null;
+
   let resolveReady;
   let rejectReady;
   const ready = new Promise((resolve, reject) => {
@@ -97,6 +104,8 @@ function createRuntime(options = {}) {
     authService,
     catalogService,
     quoteService,
+    simulationService,
+    workflowService,
     cookieSecure: options.cookieSecure ?? env.NODE_ENV === 'production',
   });
   const bootstrap = options.bootstrapUsers || defaultBootstrapUsers;
@@ -121,6 +130,8 @@ function createRuntime(options = {}) {
     catalogService,
     quoteRepository,
     quoteService,
+    simulationService,
+    workflowService,
   };
 }
 

@@ -17,7 +17,7 @@ test('configura SQLite y aplica cada migración una sola vez', async () => {
     const reopened = openDatabase({ filename });
     assert.deepEqual(
       reopened.prepare('SELECT version FROM schema_migrations ORDER BY version').all().map((row) => ({ ...row })),
-      [{ version: '001_auth.sql' }, { version: '002_catalog_quotes.sql' }],
+      [{ version: '001_auth.sql' }, { version: '002_catalog_quotes.sql' }, { version: '003_quote_codes.sql' }, { version: '004_simulation.sql' }, { version: '005_quote_workflow.sql' }, { version: '006_invoicing.sql' }, { version: '007_shared_work.sql' }, { version: '008_simulation_real_identity.sql' }, { version: '009_actor_target.sql' }],
     );
     reopened.close();
   });
@@ -247,5 +247,33 @@ test('revierte una migración inválida sin registrarla', () => {
   } finally {
     database.close();
     fs.rmSync(directory, { recursive: true, force: true });
+  }
+});
+
+
+test('asigna códigos a cotizaciones existentes sin modificar sus datos al migrar', () => {
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'publitex-code-migration-'));
+  const legacy = path.join(directory, 'legacy');
+  fs.mkdirSync(legacy);
+  for (const name of ['001_auth.sql', '002_catalog_quotes.sql']) {
+    fs.copyFileSync(path.join(__dirname, '../server/database/migrations', name), path.join(legacy, name));
+  }
+  const database = openDatabase({ filename: path.join(directory, 'legacy.sqlite') });
+  try {
+    migrateDatabase({ database, migrationsDirectory: legacy });
+    database.exec("INSERT INTO users (id, name, email, password_hash, role, created_at, updated_at) VALUES ('u', 'Ana', 'ana@example.com', 'hash', 'cliente', 0, 0)");
+    database.exec("INSERT INTO quotes (id, user_id, status, phone, created_at, updated_at, submitted_at) VALUES ('old', 'u', 'submitted', '912345678', 1, 3, 3), ('new', 'u', 'draft', NULL, 2, 2, NULL)");
+    const before = database.prepare('SELECT * FROM quotes ORDER BY id').all();
+    assert.deepEqual(migrateDatabase({ database }), ['003_quote_codes.sql', '004_simulation.sql', '005_quote_workflow.sql', '006_invoicing.sql', '007_shared_work.sql', '008_simulation_real_identity.sql', '009_actor_target.sql']);
+    assert.deepEqual(database.prepare('SELECT * FROM quotes ORDER BY id').all(), before);
+    const repository = require('../server/quotes/quote-repository').createQuoteRepository({ database });
+    return (async () => {
+      assert.equal((await repository.findOwned('old', 'u')).code, 'COT-000001');
+      assert.equal((await repository.findOwned('new', 'u')).code, 'COT-000002');
+      assert.deepEqual(migrateDatabase({ database }), []);
+      assert.equal((await repository.createDraft({ id: 'next', userId: 'u' })).code, 'COT-000003');
+    })().finally(() => { database.close(); fs.rmSync(directory, { recursive: true, force: true }); });
+  } catch (error) {
+    database.close(); fs.rmSync(directory, { recursive: true, force: true }); throw error;
   }
 });

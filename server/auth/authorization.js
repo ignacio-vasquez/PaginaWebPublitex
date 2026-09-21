@@ -7,13 +7,19 @@ function requireUser(authService) {
 
   return async function authenticatedUser(request, response, next) {
     let user;
+    let context;
     try {
-      user = await authService.getSessionUser(getSessionToken(request));
+      context = typeof authService.getSessionContext === 'function'
+        ? await authService.getSessionContext(getSessionToken(request))
+        : { user: await authService.getSessionUser(getSessionToken(request)) };
+      user = context.user;
     } catch (error) {
       return next(error);
     }
     if (!user) return response.status(401).json({ error: 'Debes iniciar sesión.' });
     request.user = user;
+    request.realUser = context.realUser || user;
+    request.simulation = context.simulation || null;
     return next();
   };
 }

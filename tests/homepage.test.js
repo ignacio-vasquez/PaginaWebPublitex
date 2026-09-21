@@ -12,7 +12,7 @@ test('define un documento HTML en español con estructura semántica', () => {
   assert.equal(hasElement(html, 'main'), true);
   assert.equal(hasElement(html, 'footer'), true);
   assert.match(html, /<title>[^<]+<\/title>/i);
-  assert.match(html, /<a\b[^>]*href="#inicio"[^>]*aria-label="Publitexweb, ir al inicio"/i);
+  assert.match(html, /<a\b[^>]*href="#inicio"[^>]*aria-label="Publitex, ir al inicio"/i);
 });
 
 test('ofrece navegación interna hacia todas las secciones públicas', () => {
@@ -34,7 +34,7 @@ test('presenta el servicio y dos acciones principales', () => {
 
   assert.match(html, /Hacemos que tu negocio destaque/i);
   assert.match(html, /Letreros luminosos, rotulación vehicular y soluciones adhesivas/i);
-  assert.match(html, /href="#cotizacion"[^>]*>\s*Solicitar cotización/i);
+  assert.match(html, /href="index.html#cotizacion"[^>]*>\s*Simular proyecto/i);
   assert.match(html, /href="#trabajos"[^>]*>\s*Ver nuestros trabajos/i);
 });
 

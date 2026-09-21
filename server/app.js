@@ -1,4 +1,6 @@
 const express = require('express');
+const { createSimulationRouter } = require('./superadmin/simulation-routes');
+const { createWorkflowRouter } = require('./quotes/workflow-routes');
 const path = require('node:path');
 const crypto = require('node:crypto');
 const bcrypt = require('bcryptjs');
@@ -23,7 +25,14 @@ function createApp(options = {}) {
     });
   }
   app.use(express.json({ limit: '16kb' }));
-  app.use(express.static(path.resolve(__dirname, '..')));
+  const publicRoot = path.resolve(__dirname, '..');
+  for (const directory of ['css', 'js', 'assets']) {
+    app.use(`/${directory}`, express.static(path.join(publicRoot, directory), { index: false }));
+  }
+  for (const page of ['index.html', 'acceso.html', 'cotizacion.html', 'cotizaciones.html', 'gestion.html', 'superadmin.html', 'facturas.html']) {
+    app.get(`/${page}`, (_request, response) => response.sendFile(path.join(publicRoot, page)));
+  }
+  app.get('/', (_request, response) => response.sendFile(path.join(publicRoot, 'index.html')));
 
   const users = options.users || createUserRepository();
   const sessions = options.sessions || createSessionRepository();
@@ -58,6 +67,12 @@ function createApp(options = {}) {
       quoteService: options.quoteService,
       authService,
     }));
+  }
+  if (options.simulationService) {
+    app.use('/api/superadmin', createSimulationRouter({ simulationService: options.simulationService }));
+  }
+  if (options.workflowService) {
+    app.use('/api/work', createWorkflowRouter({ authService, workflowService: options.workflowService }));
   }
   if (options.testRoutes) app.use('/api/test', options.testRoutes);
 

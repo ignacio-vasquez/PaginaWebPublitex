@@ -68,7 +68,9 @@ test('crea, lista y recupera un borrador como objetos planos después de reabrir
   await withRepository(async (fixture) => {
     const quotes = fixture.makeRepository();
     assert.deepEqual(await quotes.createDraft({ id: 'quote-1', userId: 'user-1' }), {
-      id: 'quote-1', status: 'draft', phone: null, company: null,
+      id: 'quote-1', code: 'COT-000001', status: 'draft', phone: null, company: null,
+      invoiceNumber: null, invoicedAt: null, paymentDueAt: null,
+      events: [{ actorId: 'user-1', effectiveRole: 'cliente', status: 'draft', createdAt: 1000 }],
       estimatedTotal: 0, hasEvaluation: false,
       createdAt: 1000, updatedAt: 1000, submittedAt: null, items: [],
     });
@@ -166,5 +168,22 @@ test('envía el borrador transaccionalmente y bloquea todas las mutaciones poste
     for (const operation of operations) {
       await assert.rejects(operation, { code: 'QUOTE_NOT_EDITABLE' });
     }
+  });
+});
+
+
+test('asigna códigos únicos permanentes y ordena el historial por creación', async () => {
+  await withRepository(async (fixture) => {
+    let quotes = fixture.makeRepository();
+    const first = await quotes.createDraft({ id: 'quote-1', userId: 'user-1' });
+    const second = await quotes.createDraft({ id: 'quote-2', userId: 'user-1' });
+    const other = await quotes.createDraft({ id: 'quote-3', userId: 'user-2' });
+    assert.deepEqual([first.code, second.code, other.code], ['COT-000001', 'COT-000002', 'COT-000003']);
+    await quotes.saveDetails({ id: first.id, userId: 'user-1', phone: '912345678', company: '' });
+    fixture.reopen();
+    quotes = fixture.makeRepository();
+    assert.deepEqual((await quotes.listByUser('user-1')).map((quote) => quote.code), ['COT-000002', 'COT-000001']);
+    assert.equal(await quotes.findOwned(other.id, 'user-1'), null);
+    assert.equal((await quotes.createDraft({ id: 'quote-4', userId: 'user-1' })).code, 'COT-000004');
   });
 });

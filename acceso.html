@@ -9,10 +9,10 @@
   </head>
   <body class="access-page">
     <header>
-      <p><a href="index.html#inicio" aria-label="Publitexweb, ir al inicio">Publitexweb</a></p>
+      <p><a href="index.html#inicio" aria-label="Publitex, ir al inicio">Publitex</a></p>
       <a data-home-link href="index.html#inicio">Inicio</a>
       <a data-session-link href="acceso.html">Ingresar</a>
-      <a href="index.html#cotizacion">Cotizar proyecto</a>
+      <a data-project-link href="index.html#cotizacion">Simular proyecto</a>
     </header>
 
     <main>
@@ -60,14 +60,26 @@
           <p class="eyebrow">Tu cuenta</p>
           <h1 id="account-title">Mi cuenta</h1>
           <p>Estos son los datos asociados a tu cuenta.</p>
-          <dl class="account-details">
-            <dt>Nombre</dt>
-            <dd data-account-name></dd>
-            <dt>Correo electrónico</dt>
-            <dd data-account-email></dd>
-            <dt>Tipo de cuenta</dt>
-            <dd data-account-role></dd>
-          </dl>
+          <section class="account-card" aria-labelledby="profile-title">
+            <header class="account-card-heading">
+              <p class="eyebrow">Perfil personal</p>
+              <h2 id="profile-title">Tus datos</h2>
+            </header>
+            <dl class="account-details">
+              <div class="account-name-row">
+                <dt>Nombre</dt>
+                <dd data-account-name></dd>
+              </div>
+              <div>
+                <dt>Correo electrónico</dt>
+                <dd data-account-email></dd>
+              </div>
+              <div>
+                <dt>Tipo de cuenta</dt>
+                <dd><span data-account-role></span></dd>
+              </div>
+            </dl>
+          </section>
           <p><a href="cotizaciones.html">Mis cotizaciones</a></p>
           <button type="button" data-logout>Cerrar sesión</button>
         </div>
@@ -80,7 +92,7 @@
       <p><strong>Publitexweb</strong> — Publicidad visual</p>
       <nav aria-label="Navegación complementaria">
         <a href="index.html#inicio">Volver al inicio</a>
-        <a href="index.html#cotizacion">Cotizar proyecto</a>
+        <a data-project-link href="index.html#cotizacion">Simular proyecto</a>
         <a href="cotizaciones.html">Mis cotizaciones</a>
       </nav>
     </footer>

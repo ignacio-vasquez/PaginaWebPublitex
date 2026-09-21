@@ -1,4 +1,5 @@
 const HANDOFF_KEY = 'publitex_quote_handoff_v1';
+const SELECTION_KEY = 'publitex_quote_selection_v1';
 
 function replaceOptions(select, options, placeholder) {
   select.replaceChildren();
@@ -36,6 +37,7 @@ export function initSimulator(
   const summary = root.querySelector('[data-estimate-summary]');
   const total = root.querySelector('[data-estimate-total]');
   const quoteButton = root.querySelector('[data-quote-project]');
+  const quotation = root.hasAttribute('data-quotation');
   let products = [];
   let lastSelection = null;
 
@@ -124,27 +126,68 @@ export function initSimulator(
     }
   });
 
-  quoteButton.addEventListener('click', () => {
-    if (!lastSelection) return;
+  quoteButton.addEventListener('click', async () => {
+    if (!lastSelection || quoteButton.disabled) return;
     const handoff = { ...lastSelection, observation: observation.value.trim() };
+    quoteButton.disabled = true;
     try {
-      storage.setItem(HANDOFF_KEY, JSON.stringify(handoff));
+      const response = await api('/api/auth/session', { credentials: 'same-origin' });
+      const session = await response.json();
+      if (!response.ok || session.authenticated !== true) {
+        quoteButton.hidden = true;
+        showStatus('Inicia sesión para crear una cotización. La simulación no se ha guardado.');
+        return;
+      }
+      storage.setItem(quotation ? HANDOFF_KEY : SELECTION_KEY, JSON.stringify(handoff));
+      navigate(quotation ? 'cotizaciones.html' : 'cotizacion.html');
     } catch {
-      showStatus('No pudimos conservar la selección; deberás elegirla nuevamente después de ingresar.');
+      showStatus('No pudimos continuar. Tu selección sigue aquí; vuelve a intentarlo.');
+    } finally {
+      quoteButton.disabled = false;
     }
-    navigate('acceso.html?returnTo=cotizaciones.html');
   });
 
   const ready = (async () => {
     showStatus('Cargando opciones…');
     try {
+      if (quotation) {
+        const response = await api('/api/auth/session', { credentials: 'same-origin' });
+        const session = await response.json();
+        if (!response.ok) throw new Error('No pudimos comprobar tu sesión. Recarga para intentarlo nuevamente.');
+        if (session.authenticated !== true) {
+          navigate('acceso.html?returnTo=cotizacion.html');
+          return;
+        }
+        root.hidden = false;
+        documentRoot.querySelector('[data-quotation-status]').hidden = true;
+      }
       const response = await api('/api/catalog');
       const body = await response.json();
       if (!response.ok) throw new Error(body.error || 'No pudimos cargar las opciones.');
       products = body.products;
       replaceOptions(product, products, 'Selecciona un producto');
       showStatus('Opciones cargadas.');
+      if (quotation) {
+        try {
+          const saved = JSON.parse(storage?.getItem(SELECTION_KEY) || 'null');
+          if (saved) {
+            product.value = saved.productId;
+            product.dispatchEvent(new documentRoot.defaultView.Event('change'));
+            material.value = saved.materialId;
+            size.value = saved.sizeId;
+            quantity.value = saved.quantityId;
+            extrasContainer.querySelectorAll('input').forEach((input) => {
+              input.checked = Array.isArray(saved.extraIds) && saved.extraIds.includes(input.value);
+            });
+            observation.value = typeof saved.observation === 'string' ? saved.observation : '';
+            storage.removeItem(SELECTION_KEY);
+            showStatus('Selección recuperada. Calcula la estimación para continuar.');
+          }
+        } catch { showStatus('Elige las opciones de tu cotización para continuar.'); }
+      }
     } catch (error) {
+      const pageStatus = documentRoot.querySelector('[data-quotation-status]');
+      if (pageStatus) { pageStatus.hidden = false; pageStatus.textContent = error.message; }
       product.disabled = true;
       estimateButton.disabled = true;
       showStatus(error.message || 'No pudimos cargar las opciones.');

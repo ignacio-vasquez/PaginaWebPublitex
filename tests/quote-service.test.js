@@ -135,3 +135,17 @@ test('envía un borrador válido y rechaza cualquier edición posterior', async 
     );
   });
 });
+
+
+test('acepta un teléfono local de nueve dígitos al guardar y enviar', async () => {
+  await withTestDatabase(async ({ database }) => {
+    insertUser(database);
+    const service = createService(database);
+    const draft = await service.createDraft('user-1');
+    await service.addItem(draft.id, 'user-1', signSelection);
+    await service.saveDetails(draft.id, 'user-1', { phone: '912345678', company: '' });
+    const submitted = await service.submit(draft.id, 'user-1');
+    assert.equal(submitted.phone, '912345678');
+    assert.equal(submitted.status, 'submitted');
+  });
+});

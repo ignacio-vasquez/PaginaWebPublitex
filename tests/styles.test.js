@@ -31,12 +31,12 @@ test('enlaza la hoja local y define el sistema visual provisional', () => {
 
   assert.match(html, /<link\b[^>]*rel="stylesheet"[^>]*href="css\/styles\.css"/i);
   for (const [token, value] of [
-    ['--color-ink', '#101c28'],
-    ['--color-accent', '#f36b21'],
-    ['--color-accent-deep', '#9f3500'],
-    ['--color-accent-text', '#963500'],
+    ['--color-ink', '#111111'],
+    ['--color-accent', '#e30613'],
+    ['--color-accent-deep', '#aa000d'],
+    ['--color-accent-text', '#bd0010'],
     ['--color-surface', '#ffffff'],
-    ['--color-text', '#17212b'],
+    ['--color-text', '#111111'],
     ['--content-width', '72rem'],
   ]) {
     assert.match(css, new RegExp(`${token}:\\s*${value}`));
@@ -63,8 +63,8 @@ test('limita los estilos del hero a la presentación de inicio', () => {
 
   assert.match(homepage, /<section\b[^>]*class="[^"]*\bhome-hero\b[^"]*"/i);
   assert.doesNotMatch(accessPage, /class="[^"]*\bhome-hero\b[^"]*"/i);
-  assert.match(css, /\.home-hero\s*\{[^}]*background:\s*linear-gradient/i);
-  assert.match(css, /\.home-hero\s*\{[^}]*color:\s*#fff/i);
+  assert.match(css, /\.home-hero\s*\{[^}]*background:\s*var\(--color-surface\)/i);
+  assert.match(css, /\.home-hero\s*\{[^}]*color:\s*var\(--color-ink\)/i);
   assert.doesNotMatch(css, /main\s*>\s*section:first-child\s*\{[^}]*background:\s*linear-gradient/is);
 });
 
@@ -79,7 +79,7 @@ test('organiza servicios, proceso y portafolio como componentes visuales', () =>
   assert.match(css, /#trabajos\s+figure\s*\{/i);
   assert.match(css, /object-fit:\s*cover/i);
   assert.match(css, /#servicios\s*>\s*p:first-child,[^}]*#trabajos\s*>\s*p:first-child[^}]*\{[^}]*color:\s*var\(--color-accent-text\)/is);
-  assert.match(css, /#empresa\s*>\s*p:first-child\s*\{[^}]*color:\s*#ff9a5c/is);
+  assert.match(css, /#empresa\s*>\s*p:first-child\s*\{[^}]*color:\s*#ffffff/is);
 });
 
 test('incluye formulario, responsive y preferencias de accesibilidad', () => {

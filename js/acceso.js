@@ -1,3 +1,5 @@
+import { renderSessionNavigation } from './sesion-navegacion.js';
+
 const roleLabels = {
   cliente: 'Cliente',
   trabajador: 'Trabajador',
@@ -44,13 +46,12 @@ export function initAccessPage(
   if (!authView || !accountView || !status || !loginForm || !registerForm || !logoutButton
     || typeof api !== 'function') return;
 
-  const sessionLink = documentRoot.querySelector('[data-session-link]');
   let sessionStateVersion = 0;
   const requestedReturn = new URLSearchParams(locationObject?.search || '').get('returnTo');
-  const returnTo = new Set(['cotizaciones.html']).has(requestedReturn) ? requestedReturn : null;
+  const returnTo = new Set(['cotizaciones.html', 'cotizacion.html']).has(requestedReturn) ? requestedReturn : null;
 
-  const showSessionLink = (authenticated) => {
-    if (sessionLink) sessionLink.textContent = authenticated ? 'Mi cuenta' : 'Ingresar';
+  const showSessionLink = (authenticated, body = {}) => {
+    renderSessionNavigation(documentRoot, authenticated, body, api, navigate);
   };
 
   const showStatus = (message, kind = 'info') => {
@@ -90,7 +91,7 @@ export function initAccessPage(
       }
       sessionStateVersion += 1;
       showAccount(body.user);
-      showSessionLink(true);
+      showSessionLink(true, body);
       showStatus(successMessage, 'success');
       if (returnTo) navigate(returnTo);
     } catch {
@@ -147,7 +148,7 @@ export function initAccessPage(
       if (initialSessionVersion !== sessionStateVersion) return;
       if (isSuccessful(response) && body.authenticated && body.user) {
         showAccount(body.user);
-        showSessionLink(true);
+        showSessionLink(true, body);
       }
     } catch {
       // La página sigue disponible para iniciar sesión si la comprobación no responde.

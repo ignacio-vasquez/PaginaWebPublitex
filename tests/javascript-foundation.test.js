@@ -20,7 +20,7 @@ test('la aplicación coordina módulos de responsabilidades separadas', () => {
 test('solo los flujos de cotización usan red y almacenamiento temporal con contratos acotados', () => {
   const scriptsDirectory = join(__dirname, '..', 'js');
   const html = loadHomepage();
-  const allowedNetworkModules = new Set(['simulador.js', 'cotizaciones.js']);
+  const allowedNetworkModules = new Set(['simulador.js', 'cotizaciones.js', 'superadmin.js']);
 
   for (const fileName of readdirSync(scriptsDirectory).filter((fileName) => fileName.endsWith('.js') && !allowedNetworkModules.has(fileName))) {
     const source = readFileSync(join(scriptsDirectory, fileName), 'utf8');

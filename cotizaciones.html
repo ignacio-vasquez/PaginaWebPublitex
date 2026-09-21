@@ -9,7 +9,7 @@
   </head>
   <body class="quote-page">
     <header>
-      <p><a href="index.html#inicio" aria-label="Publitexweb, ir al inicio">Publitexweb</a></p>
+      <p><a href="index.html#inicio" aria-label="Publitex, ir al inicio">Publitex</a></p>
       <nav aria-label="Navegación de cotizaciones">
         <ul><li><a href="index.html#inicio">Inicio</a></li><li><a href="acceso.html">Mi cuenta</a></li><li><a href="cotizaciones.html" aria-current="page">Mis cotizaciones</a></li></ul>
       </nav>
@@ -21,18 +21,28 @@
         <p>Guarda borradores con varios productos y envíalos cuando estén listos.</p>
         <div data-quote-workspace>
           <aside aria-labelledby="quote-list-title">
-            <h2 id="quote-list-title">Borradores y enviadas</h2>
+            <h2 id="quote-list-title">Historial</h2>
+            <p>Encuentra tus cotizaciones y consulta su avance.</p>
             <button type="button" data-create-quote>Nuevo borrador</button>
-            <ul data-quote-list></ul>
+            <ul data-quote-list tabindex="0" aria-labelledby="quote-list-title"></ul>
           </aside>
           <section data-quote-editor aria-labelledby="quote-editor-title" hidden>
-            <h2 id="quote-editor-title">Cotización</h2>
-            <p><label for="quote-phone">Teléfono</label><input id="quote-phone" data-quote-phone type="tel" autocomplete="tel"></p>
+            <h2 id="quote-editor-title" tabindex="-1">Cotización</h2>
+            <p data-quote-current-status class="quote-status-badge"></p>
+            <section data-quote-tracking aria-labelledby="quote-tracking-title" hidden>
+              <h3 id="quote-tracking-title" tabindex="-1">Estado de la cotización</h3>
+              <p data-tracking-description></p>
+              <p data-tracking-dates></p>
+              <ol data-quote-progress aria-label="Etapas de la cotización"></ol>
+              <p class="quote-progress-note">El historial muestra los avances registrados por el equipo.</p>
+            </section>
+            <p><label for="quote-phone">Teléfono</label><input id="quote-phone" data-quote-phone type="tel" autocomplete="tel" maxlength="40" aria-describedby="quote-phone-help"></p>
+            <p id="quote-phone-help">Necesario para enviar. Ejemplo: 9 1234 5678 o +56 9 1234 5678.</p>
             <p><label for="quote-company">Empresa</label><input id="quote-company" data-quote-company autocomplete="organization"></p>
             <div data-save-status role="status" aria-live="polite">Borrador guardado</div>
             <button type="button" data-save-retry hidden>Reintentar guardado</button>
             <section aria-labelledby="quote-items-title"><h3 id="quote-items-title">Productos</h3><div data-quote-items></div>
-              <a data-add-item href="index.html#cotizacion">Agregar producto</a>
+              <a data-add-item href="cotizacion.html">Agregar producto</a>
             </section>
             <p data-quote-total></p>
             <button type="button" data-submit-quote>Enviar cotización</button>
@@ -47,7 +57,6 @@
             <button type="button" data-cancel-submit>Cancelar</button>
           </div>
         </div>
-        <span class="visually-hidden">Guardando… Borrador guardado Error al guardar. Reintentar.</span>
       </section>
     </main>
     <footer><p><strong>Publitexweb</strong> — Publicidad visual</p></footer>
