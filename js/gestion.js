@@ -1,13 +1,30 @@
 import { quoteStatusLabel } from './estado-cotizacion.js';
 import { renderSessionNavigation } from './sesion-navegacion.js';
+import { createInvoiceAttachment, invoiceDate } from './invoice-attachment.js';
 
 const transitions = {
-  submitted: { status: 'in_review', roles: ['jefe', 'superadmin'], label: 'Comenzar revisión' },
-  in_review: { status: 'accepted', roles: ['jefe', 'superadmin'], label: 'Aceptar cotización' },
-  accepted: { status: 'invoiced', roles: ['jefe', 'superadmin'], label: 'Registrar factura e iniciar trabajo' },
-  invoiced: { status: 'ready', roles: ['trabajador', 'superadmin'], label: 'Marcar lista' },
-  in_production: { status: 'ready', roles: ['trabajador', 'superadmin'], label: 'Marcar lista' },
-  ready: { status: 'delivered', roles: ['jefe', 'superadmin'], label: 'Confirmar entrega' },
+  submitted: {
+    jefe: { status: 'in_review', label: 'Comenzar revisión' },
+    superadmin: { status: 'in_review', label: 'Comenzar revisión' },
+  },
+  in_review: {
+    jefe: { status: 'accepted', label: 'Aceptar cotización' },
+    superadmin: { status: 'accepted', label: 'Aceptar cotización' },
+  },
+  invoiced: {
+    jefe: { status: 'in_production', label: 'Tomar trabajo' },
+    trabajador: { status: 'ready', label: 'Marcar lista' },
+    superadmin: { status: 'in_production', label: 'Tomar trabajo' },
+  },
+  in_production: {
+    jefe: { status: 'ready', label: 'Marcar lista' },
+    trabajador: { status: 'ready', label: 'Marcar lista' },
+    superadmin: { status: 'ready', label: 'Marcar lista' },
+  },
+  ready: {
+    jefe: { status: 'delivered', label: 'Confirmar entrega' },
+    superadmin: { status: 'delivered', label: 'Confirmar entrega' },
+  },
 };
 
 export function initWorkPage(documentRoot = document, api = globalThis.fetch) {
@@ -41,34 +58,28 @@ export function initWorkPage(documentRoot = document, api = globalThis.fetch) {
       if (item.observation) article.append(node('p', item.observation));
     }
     article.append(node('p', `Estimación: ${new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP' }).format(quote.estimatedTotal || 0)}${quote.hasEvaluation ? ' + productos sujetos a evaluación' : ''}`));
-    if (quote.invoicedAt) article.append(node('p', `Trabajo en marcha · Factura ${quote.invoiceNumber} · Emitida: ${new Date(quote.invoicedAt).toLocaleDateString('es-CL')} · Pago hasta: ${new Date(quote.paymentDueAt).toLocaleDateString('es-CL')}`));
-    const action = transitions[quote.status];
-    if (action?.roles.includes(role)) {
-      let invoiceInput;
+    if (quote.invoicedAt) article.append(node('p', `Trabajo en marcha · Factura ${quote.invoiceNumber} · Registrada: ${new Date(quote.invoicedAt).toLocaleDateString('es-CL')} · Pago hasta: ${new Date(quote.paymentDueAt).toLocaleDateString('es-CL')}`));
+    if (quote.invoice) article.append(node('p', `Fecha de emisión: ${new Date(invoiceDate(quote)).toLocaleDateString('es-CL')} · Total facturado: ${new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP' }).format(quote.invoice.total)}`));
+    if (['jefe', 'superadmin'].includes(role) && (quote.invoice || ['accepted', 'invoiced', 'in_production', 'ready'].includes(quote.status))) {
+      article.append(createInvoiceAttachment(documentRoot, quote, {
+        api,
+        onBusy(value) { busy = value; refresh.disabled = value; },
+        onSaved(updated) { article.replaceWith(card(updated)); status.textContent = 'Factura guardada y vinculada a la cotización.'; },
+      }));
+    }
+    const action = transitions[quote.status]?.[role];
+    if (action) {
       const button = node('button', action.label);
       button.type = 'button';
       button.dataset.workTransition = '';
-      if (action.status === 'invoiced') {
-        const label = node('label', 'Número de factura emitida');
-        invoiceInput = node('input');
-        invoiceInput.type = 'text';
-        invoiceInput.maxLength = 100;
-        invoiceInput.required = true;
-        invoiceInput.dataset.invoiceNumber = '';
-        label.append(invoiceInput);
-        article.append(label);
-        button.disabled = true;
-        invoiceInput.addEventListener('input', () => { button.disabled = !invoiceInput.value.trim(); });
-      }
       button.addEventListener('click', async () => {
-        if (busy || (invoiceInput && !invoiceInput.value.trim())) return;
+        if (busy) return;
         busy = true;
         button.disabled = true;
         refresh.disabled = true;
-        if (invoiceInput) invoiceInput.disabled = true;
         status.textContent = 'Actualizando proyecto…';
         try {
-          const body = { status: action.status, ...(invoiceInput ? { invoiceNumber: invoiceInput.value.trim() } : {}) };
+          const body = { status: action.status };
           const updated = await request(`/api/work/quotes/${encodeURIComponent(quote.id)}/transition`, {
             method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body),
           });
@@ -84,8 +95,7 @@ export function initWorkPage(documentRoot = document, api = globalThis.fetch) {
         } finally {
           busy = false;
           refresh.disabled = false;
-          if (invoiceInput) invoiceInput.disabled = false;
-          button.disabled = Boolean(invoiceInput && !invoiceInput.value.trim());
+          button.disabled = false;
         }
       });
       article.append(button);

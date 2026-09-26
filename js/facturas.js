@@ -1,10 +1,11 @@
 import { renderSessionNavigation } from './sesion-navegacion.js';
+import { createInvoiceAttachment, invoiceDate } from './invoice-attachment.js';
 
 const money = new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP' });
 const normalize = value => String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '')
   .toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim().replace(/\s+/g, ' ');
 const dateText = timestamp => timestamp ? new Date(timestamp).toLocaleString('es-CL', { dateStyle: 'long', timeStyle: 'short' }) : 'Sin fecha registrada';
-const invoiceYear = quote => new Date(quote.invoicedAt || quote.events?.find(event => event.status === 'delivered')?.createdAt || quote.createdAt).getFullYear();
+const invoiceYear = quote => new Date(invoiceDate(quote)).getFullYear();
 
 function dateTerms(timestamp) {
   if (!timestamp) return '';
@@ -20,7 +21,8 @@ function dateTerms(timestamp) {
 function matches(quote, query) {
   if (!query) return true;
   const fields = [quote.code, quote.invoiceNumber, quote.clientName, quote.clientEmail,
-    quote.company, quote.phone, dateTerms(quote.invoicedAt),
+    quote.company, quote.phone, dateTerms(invoiceDate(quote)), quote.invoice?.receiverName,
+    quote.invoice?.receiverRut, quote.invoice?.issuerRut,
     dateTerms(quote.events?.find(event => event.status === 'ready')?.createdAt),
     dateTerms(quote.events?.find(event => event.status === 'delivered')?.createdAt)];
   for (const item of quote.items || []) {
@@ -50,11 +52,15 @@ export function initInvoiceArchive(documentRoot = document, api = globalThis.fet
   function card(quote) {
     const details = node('details');
     details.dataset.invoiceCard = '';
-    const summary = node('summary', `${quote.invoiceNumber || 'Factura sin número'} · ${quote.code} · ${new Date(quote.invoicedAt || quote.createdAt).toLocaleDateString('es-CL')}`);
+    const summary = node('summary', `${quote.invoiceNumber || 'Factura sin número'} · ${quote.code} · ${new Date(invoiceDate(quote)).toLocaleDateString('es-CL')}`);
     details.append(summary);
     details.append(node('p', `Cliente: ${quote.clientName || 'Sin nombre'} · ${quote.clientEmail || 'Sin correo'}`));
     details.append(node('p', `Contacto: ${[quote.company, quote.phone].filter(Boolean).join(' · ') || 'Sin datos adicionales'}`));
-    details.append(node('p', `Facturada: ${dateText(quote.invoicedAt)}`));
+    if (quote.invoice) {
+      details.append(node('p', `Fecha de emisión: ${new Date(invoiceDate(quote)).toLocaleDateString('es-CL')} · Total facturado: ${money.format(quote.invoice.total)}`));
+      if (quote.invoice.receiverName) details.append(node('p', `Receptor de la factura: ${quote.invoice.receiverName} · RUT ${quote.invoice.receiverRut}`));
+    }
+    details.append(node('p', `Registrada como facturada: ${dateText(quote.invoicedAt)}`));
     const finished = quote.events?.find(event => event.status === 'ready');
     if (finished) details.append(node('p', `Trabajo terminado: ${dateText(finished.createdAt)}`));
     const delivered = quote.events?.find(event => event.status === 'delivered');
@@ -71,13 +77,24 @@ export function initInvoiceArchive(documentRoot = document, api = globalThis.fet
       }
       details.append(heading, products);
     }
+    details.append(createInvoiceAttachment(documentRoot, quote, {
+      api,
+      onSaved(updated) {
+        records = records.map(record => record.id === updated.id ? { ...record, ...updated } : record);
+        selectedYear = invoiceYear(updated);
+        search.value = '';
+        renderYears();
+        renderList();
+        status.textContent = `Factura guardada en ${selectedYear} y vinculada a ${quote.code}.`;
+      },
+    }));
     return details;
   }
 
   function renderList() {
     const query = normalize(search.value);
     const visible = records.filter(quote => invoiceYear(quote) === selectedYear && matches(quote, query))
-      .sort((a, b) => (b.invoicedAt || b.createdAt) - (a.invoicedAt || a.createdAt) || b.code.localeCompare(a.code));
+      .sort((a, b) => invoiceDate(b) - invoiceDate(a) || b.code.localeCompare(a.code));
     title.textContent = `Facturas de ${selectedYear}`;
     list.replaceChildren(...visible.map(card));
     if (!visible.length) list.append(node('p', query ? 'No hay facturas que coincidan con la búsqueda en este año.' : 'No hay facturas entregadas en este año.'));
@@ -86,8 +103,9 @@ export function initInvoiceArchive(documentRoot = document, api = globalThis.fet
 
   function renderYears() {
     const latestYear = Math.max(new Date().getFullYear(), 2005, ...records.map(invoiceYear));
+    const earliestYear = Math.min(2005, ...records.map(invoiceYear));
     years.replaceChildren();
-    for (let year = latestYear; year >= 2005; year -= 1) {
+    for (let year = latestYear; year >= earliestYear; year -= 1) {
       const count = records.filter(quote => invoiceYear(quote) === year).length;
       const button = node('button', `${year} (${count})`);
       button.type = 'button';

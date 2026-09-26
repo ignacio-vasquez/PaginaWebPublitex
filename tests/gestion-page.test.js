@@ -3,6 +3,36 @@ const assert = require('node:assert/strict');
 const { readFileSync } = require('node:fs');
 const { createDom } = require('./dom');
 const tick = () => new Promise(setImmediate);
+
+test('jefe puede tomar un trabajo, marcarlo listo y confirmar la entrega desde la pantalla', async () => {
+  const { initWorkPage } = await import('../js/gestion.js');
+  const doc = createDom(readFileSync('gestion.html', 'utf8')).window.document;
+  const transitions = [];
+  let current = { id: 'q1', code: 'COT-1', status: 'invoiced', items: [], events: [] };
+  initWorkPage(doc, async (url, options) => {
+    if (url === '/api/auth/session') return new Response(JSON.stringify({ authenticated: true, user: { role: 'jefe' } }));
+    if (options?.method === 'POST') {
+      const { status } = JSON.parse(options.body);
+      transitions.push(status);
+      current = { ...current, status, events: [...current.events, { status, effectiveRole: 'jefe', createdAt: Date.now() }] };
+      return new Response(JSON.stringify(current));
+    }
+    return new Response(JSON.stringify([current]));
+  });
+  await tick();
+  assert.equal(doc.querySelector('[data-work-transition]').textContent, 'Tomar trabajo');
+  for (const [nextLabel, expectedStatus] of [['Marcar lista', 'in_production'], ['Confirmar entrega', 'ready']]) {
+    doc.querySelector('[data-work-transition]').click();
+    await tick();
+    assert.equal(doc.querySelector('[data-work-transition]').textContent, nextLabel);
+    assert.equal(current.status, expectedStatus);
+  }
+  doc.querySelector('[data-work-transition]').click();
+  await tick();
+  assert.deepEqual(transitions, ['in_production', 'ready', 'delivered']);
+  assert.equal(doc.querySelectorAll('[data-work-card]').length, 0);
+});
+
 for (const [role, initial, next] of [['jefe', 'in_review', 'accepted'], ['trabajador', 'invoiced', 'ready']]) {
   test(`${role} puede avanzar el trabajo`, async () => {
     const { initWorkPage } = await import('../js/gestion.js');
@@ -28,27 +58,36 @@ for (const [role, initial, next] of [['jefe', 'in_review', 'accepted'], ['trabaj
   });
 }
 
-test('jefe registra la factura y ve el plazo de pago y el inicio del trabajo', async () => {
+test('jefe adjunta el archivo, revisa sus datos y confirma antes de facturar', async () => {
   const { initWorkPage } = await import('../js/gestion.js');
   const doc = createDom(readFileSync('gestion.html', 'utf8')).window.document;
   const calls = [];
   initWorkPage(doc, async (url, options) => {
     if (url === '/api/auth/session') return new Response(JSON.stringify({ authenticated: true, user: { role: 'jefe' } }));
+    if (url.endsWith('/preview')) return new Response(JSON.stringify({ filename: 'factura.xml', metadata: { number: '123', issueDate: '2024-10-26', total: 11900, issuerRut: '76000000-0', receiverRut: '11111111-1', receiverName: 'Ana' } }));
     if (options?.method === 'POST') {
-      calls.push(JSON.parse(options.body));
-      return new Response(JSON.stringify({ id: 'q1', code: 'COT-1', status: 'invoiced', invoiceNumber: 'F-123', invoicedAt: Date.UTC(2026, 8, 20), paymentDueAt: Date.UTC(2026, 9, 20), items: [], events: [] }));
+      calls.push(options.body);
+      return new Response(JSON.stringify({ id: 'q1', code: 'COT-1', status: 'invoiced', invoiceNumber: '123', invoice: { filename: 'factura.xml', issueDate: '2024-10-26', total: 11900 }, invoicedAt: Date.UTC(2026, 8, 20), paymentDueAt: Date.UTC(2026, 9, 20), items: [], events: [] }));
     }
     return new Response(JSON.stringify([{ id: 'q1', code: 'COT-1', status: 'accepted', items: [], events: [] }]));
   });
   await tick();
-  const button = doc.querySelector('[data-work-transition]');
-  assert.equal(button.disabled, true);
-  const input = doc.querySelector('[data-invoice-number]');
-  input.value = 'F-123';
-  input.dispatchEvent(new doc.defaultView.Event('input'));
-  button.click();
+  assert.equal(doc.querySelector('[data-work-transition]'), null);
+  assert.equal(doc.querySelector('.invoice-attachment form').hidden, true);
+  const picker = doc.querySelector('[data-invoice-file]');
+  Object.defineProperty(picker, 'files', { value: [new doc.defaultView.File(['xml'], 'factura.xml', { type: 'application/xml' })] });
+  picker.dispatchEvent(new doc.defaultView.Event('change'));
   await tick();
-  assert.deepEqual(calls, [{ status: 'invoiced', invoiceNumber: 'F-123' }]);
+  assert.equal(calls.length, 0);
+  assert.equal(doc.querySelector('[name="number"]').value, '123');
+  assert.equal(doc.querySelector('[name="issueDate"]').value, '2024-10-26');
+  doc.querySelector('[data-invoice-confirm]').click();
+  await tick();
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0].get('invoice').name, 'factura.xml');
+  assert.equal(calls[0].get('number'), '123');
+  assert.equal(doc.querySelector('[data-work-transition]').textContent, 'Tomar trabajo');
+  assert.equal(doc.querySelector('a[download]').getAttribute('href'), '/api/work/quotes/q1/invoice');
   assert.match(doc.querySelector('[data-work-list]').textContent, /Facturada/);
   assert.match(doc.querySelector('[data-work-list]').textContent, /Trabajo en marcha/);
   assert.ok(doc.querySelector('[data-work-list]').textContent.includes(new Date(Date.UTC(2026, 9, 20)).toLocaleDateString('es-CL')));

@@ -2,6 +2,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const { withTestDatabase } = require('./database-helper');
 const { createRuntime } = require('../server/server');
+const { invoiceFile } = require('./invoice-fixture');
 
 test('runtime conecta simulación y flujo completo conservando la identidad real', async () => {
   await withTestDatabase(async ({ database }) => {
@@ -20,7 +21,7 @@ test('runtime conecta simulación y flujo completo conservando la identidad real
     const boss = await runtime.simulationService.setRole(login.token,'jefe');
     await runtime.workflowService.transition(quote.id,boss,{status:'in_review'});
     await runtime.workflowService.transition(quote.id,boss,{status:'accepted'});
-    await runtime.workflowService.transition(quote.id,boss,{status:'invoiced',invoiceNumber:'F-1'});
+    await runtime.workflowService.attachInvoice(quote.id,boss,invoiceFile('1'));
     const worker = await runtime.simulationService.setRole(login.token,'trabajador');
     assert.equal((await runtime.workflowService.list(worker)).length, 1);
     await runtime.workflowService.transition(quote.id,worker,{status:'ready'});

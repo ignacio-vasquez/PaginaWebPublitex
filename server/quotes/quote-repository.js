@@ -123,11 +123,15 @@ function createQuoteRepository({ database, now = Date.now }) {
   function mapQuote(row) {
     if (!row) return null;
     const workflow = database.prepare('SELECT status, invoice_number, invoiced_at, payment_due_at FROM quote_workflow WHERE quote_id = ?').get(row.id);
+    const invoice = database.prepare(`SELECT filename,issue_date AS issueDate,total,issuer_rut AS issuerRut,
+      receiver_rut AS receiverRut,receiver_name AS receiverName,document_type AS documentType,
+      uploaded_at AS uploadedAt FROM quote_invoices WHERE quote_id=?`).get(row.id);
     const events = database.prepare('SELECT actor_id, effective_role, status, created_at FROM quote_events WHERE quote_id = ? ORDER BY id').all(row.id);
     return {
       id: row.id,
       status: workflow?.status || row.status,
       invoiceNumber: workflow?.invoice_number || null,
+      ...(invoice ? { invoice: { ...invoice, downloadUrl: `/api/work/quotes/${encodeURIComponent(row.id)}/invoice` } } : {}),
       invoicedAt: workflow?.invoiced_at || null,
       paymentDueAt: workflow?.payment_due_at || null,
       events: events.map(event => ({ actorId: event.actor_id, effectiveRole: event.effective_role, status: event.status, createdAt: event.created_at })),

@@ -1789,3 +1789,9 @@ body > header > p {
 [data-invoice-card] { padding: 1rem 1.25rem; border: 1px solid var(--color-border); border-radius: var(--radius-small); background: var(--color-surface); overflow-wrap: anywhere; }
 [data-invoice-card] summary { cursor: pointer; font-weight: 750; }
 [data-invoice-card] h3 { margin-bottom: 0.5rem; }
+.invoice-attachment { margin-block: 1.25rem; padding: 1rem; border: 1px solid var(--color-border); border-radius: var(--radius-small); overflow-wrap: anywhere; }
+.invoice-attachment form { display: grid; gap: 0.75rem; max-width: 32rem; margin-top: 1rem; }
+.invoice-attachment form[hidden] { display: none; }
+.invoice-attachment label { display: grid; gap: 0.35rem; font-weight: 700; }
+.invoice-attachment input:not([type="file"]) { width: 100%; min-height: 2.75rem; padding: 0.6rem; border: 1px solid var(--color-border); border-radius: var(--radius-small); font: inherit; }
+.invoice-attachment input[readonly] { background: var(--color-surface); color: var(--color-ink-soft); }

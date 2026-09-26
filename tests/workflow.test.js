@@ -3,6 +3,7 @@ const assert = require('node:assert/strict');
 const { withTestDatabase } = require('./database-helper');
 const { createQuoteRepository } = require('../server/quotes/quote-repository');
 const { createWorkflowService } = require('../server/quotes/workflow-service');
+const { invoiceFile } = require('./invoice-fixture');
 
 function setup(database) {
   const insert = database.prepare("INSERT INTO users (id,name,email,password_hash,role,created_at,updated_at) VALUES (?,?,?,'hash',?,1,1)");
@@ -29,9 +30,9 @@ test('jefe factura y todos los trabajadores ven el trabajo; uno lo termina', asy
     assert.equal(await workflow.transition('q', other, { status: 'ready' }), null);
     await assert.rejects(workflow.transition('q', worker, { status: 'delivered' }), { code: 'FORBIDDEN' });
     await assert.rejects(workflow.transition('q', boss, { status: 'invoiced' }), { code: 'INVALID_INVOICE' });
-    const invoiced = await workflow.transition('q', boss, { status: 'invoiced', invoiceNumber: 'F-123' });
+    const invoiced = await workflow.attachInvoice('q', boss, invoiceFile('123'));
     assert.equal(invoiced.status, 'invoiced');
-    assert.equal(invoiced.invoiceNumber, 'F-123');
+    assert.equal(invoiced.invoiceNumber, '123');
     assert.equal(invoiced.invoicedAt, 1000);
     assert.equal(invoiced.paymentDueAt, 1000 + 30 * 24 * 60 * 60 * 1000);
     assert.equal((await workflow.list(worker)).length, 1);
@@ -50,6 +51,25 @@ test('jefe factura y todos los trabajadores ven el trabajo; uno lo termina', asy
     assert.deepEqual(delivered.events.map(({ status }) => status), ['in_review','accepted','invoiced','ready','delivered']);
     assert.deepEqual(delivered.events.map(({ effectiveRole }) => effectiveRole), ['jefe','jefe','jefe','trabajador','jefe']);
     assert.deepEqual(database.prepare('SELECT actor_id FROM quote_events ORDER BY id').all().map(({actor_id})=>actor_id), ['boss','boss','boss','worker','boss']);
+  });
+});
+
+test('jefe puede tomar el trabajo, marcarlo listo y confirmar la entrega', async () => {
+  await withTestDatabase(async ({ database }) => {
+    const { workflow, boss } = setup(database);
+    await workflow.transition('q', boss, { status: 'in_review' });
+    await workflow.transition('q', boss, { status: 'accepted' });
+    await workflow.attachInvoice('q', boss, invoiceFile('123'));
+
+    const started = await workflow.transition('q', boss, { status: 'in_production' });
+    assert.equal(started.status, 'in_production');
+    const ready = await workflow.transition('q', boss, { status: 'ready' });
+    assert.equal(ready.status, 'ready');
+    const delivered = await workflow.transition('q', boss, { status: 'delivered' });
+    assert.equal(delivered.status, 'delivered');
+    assert.deepEqual(delivered.events.slice(-3).map(({ status, effectiveRole }) => [status, effectiveRole]), [
+      ['in_production', 'jefe'], ['ready', 'jefe'], ['delivered', 'jefe'],
+    ]);
   });
 });
 

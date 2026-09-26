@@ -42,3 +42,23 @@ test('el archivo no muestra facturas al trabajador', async () => {
   assert.deepEqual(calls, ['/api/auth/session']);
   assert.equal(doc.querySelector('[data-invoice-content]').hidden, true);
 });
+
+test('clasifica y busca por fecha del documento aunque la carga ocurra en otro año', async () => {
+  const { initInvoiceArchive } = await import('../js/facturas.js');
+  const doc = createDom(readFileSync('facturas.html', 'utf8')).window.document;
+  const record = { id: 'q', code: 'COT-000001', status: 'delivered', invoiceNumber: '23',
+    invoicedAt: Date.UTC(2026, 8, 26), createdAt: Date.UTC(2026, 8, 20), items: [], events: [],
+    invoice: { issueDate: '2024-10-26', total: 11900, filename: 'factura.xml', receiverName: 'Ana', receiverRut: '11111111-1' } };
+  initInvoiceArchive(doc, async url => new Response(JSON.stringify(url === '/api/auth/session'
+    ? { authenticated: true, user: { role: 'jefe' } } : [record])));
+  await tick();
+  assert.equal(doc.querySelector('[data-invoice-year="2024"]').textContent, '2024 (1)');
+  assert.equal(doc.querySelector('[data-invoice-year="2026"]').textContent, '2026 (0)');
+  doc.querySelector('[data-invoice-year="2024"]').click();
+  const search = doc.querySelector('[data-invoice-search]');
+  search.value = '26-10-2024';
+  search.dispatchEvent(new doc.defaultView.Event('input'));
+  assert.equal(doc.querySelectorAll('[data-invoice-card]').length, 1);
+  assert.equal(doc.querySelector('a[download]').getAttribute('href'), '/api/work/quotes/q/invoice');
+  assert.match(doc.querySelector('[data-invoice-list]').textContent, /Total facturado/);
+});
