@@ -10,6 +10,7 @@ const { migrateDatabase } = require('./database/migrate');
 const { createUserRepository } = require('./users/user-repository');
 const { createSqliteUserRepository } = require('./users/sqlite-user-repository');
 const { createUserService } = require('./users/user-service');
+const { createUserManagementService } = require('./users/user-management-service');
 const { createSessionRepository } = require('./auth/session-repository');
 const { createSqliteSessionRepository } = require('./auth/sqlite-session-repository');
 const { createAuthService } = require('./auth/auth-service');
@@ -71,6 +72,8 @@ function createRuntime(options = {}) {
     hashToken: options.hashToken,
     now: options.now,
   });
+  const userManagementService = database
+    ? createUserManagementService({ database, userService, now: options.now }) : null;
   const catalogRepository = options.catalogRepository
     || (database ? createCatalogRepository({ database }) : null);
   const catalogService = options.catalogService
@@ -104,6 +107,7 @@ function createRuntime(options = {}) {
     users,
     sessions,
     userService,
+    userManagementService,
     authService,
     catalogService,
     quoteService,
@@ -129,6 +133,7 @@ function createRuntime(options = {}) {
     users,
     sessions,
     userService,
+    userManagementService,
     authService,
     catalogRepository,
     catalogService,

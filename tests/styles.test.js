@@ -32,9 +32,9 @@ test('enlaza la hoja local y define el sistema visual provisional', () => {
   assert.match(html, /<link\b[^>]*rel="stylesheet"[^>]*href="css\/styles\.css"/i);
   for (const [token, value] of [
     ['--color-ink', '#111111'],
-    ['--color-accent', '#e30613'],
-    ['--color-accent-deep', '#aa000d'],
-    ['--color-accent-text', '#bd0010'],
+    ['--color-accent', '#f58220'],
+    ['--color-accent-deep', '#a84f00'],
+    ['--color-accent-text', '#aa4d00'],
     ['--color-surface', '#ffffff'],
     ['--color-text', '#111111'],
     ['--content-width', '72rem'],

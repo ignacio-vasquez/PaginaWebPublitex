@@ -106,7 +106,8 @@ test('ofrece un simulador cerrado y accesible para estimar una cotización', () 
   assert.match(quoteSection, /<div\b[^>]*data-simulator[^>]*role="form"/i);
   assert.match(quoteSection, /data-simulator-estimate/i);
   assert.match(html, /data-simulator-status[^>]*role="status"[^>]*aria-live="polite"/i);
-  assert.match(html, /Valor referencial sujeto a confirmación por la empresa/i);
+  assert.match(html, /El precio final puede variar según los detalles del proyecto/i);
+  assert.match(html, /Confirmaremos el valor al revisar tu solicitud/i);
   for (const field of fields) {
     assert.match(html, new RegExp(`id="${field}"`, 'i'));
     assert.match(html, new RegExp(`for="${field}"`, 'i'));

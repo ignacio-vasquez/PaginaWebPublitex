@@ -31,9 +31,9 @@ function createApp(options = {}) {
     app.use(`/${directory}`, express.static(path.join(publicRoot, directory), { index: false }));
   }
   for (const page of ['index.html', 'acceso.html', 'cotizacion.html', 'cotizaciones.html', 'gestion.html', 'superadmin.html', 'facturas.html']) {
-    app.get(`/${page}`, (_request, response) => response.sendFile(path.join(publicRoot, page)));
+    app.get(`/${page}`, (_request, response) => response.sendFile(page, { root: publicRoot }));
   }
-  app.get('/', (_request, response) => response.sendFile(path.join(publicRoot, 'index.html')));
+  app.get('/', (_request, response) => response.sendFile('index.html', { root: publicRoot }));
 
   const users = options.users || createUserRepository();
   const sessions = options.sessions || createSessionRepository();
