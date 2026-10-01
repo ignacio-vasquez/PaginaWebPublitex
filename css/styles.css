@@ -1046,6 +1046,43 @@ body.dialog-open {
   font-size: 1.1rem;
 }
 
+.quote-history-entry > span[data-quote-work-name] {
+  font-weight: 700;
+  color: var(--color-ink);
+}
+
+[data-quote-search],
+[data-work-search],
+[data-quote-work-name] {
+  width: min(100%, 32rem);
+}
+
+[data-quote-attachments],
+[data-work-attachments] {
+  margin-block: 1rem;
+  padding: 1rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-small);
+  background: var(--color-surface-soft);
+}
+
+[data-work-attachments] form {
+  display: grid;
+  gap: 0.5rem;
+  margin-block: 0.75rem;
+  padding-block: 0.75rem;
+  border-top: 1px solid var(--color-border);
+}
+
+[data-work-attachments] input[type="file"] {
+  max-width: 100%;
+}
+
+[data-work-attachments] [role="status"] {
+  min-height: 1.5em;
+  color: var(--color-accent-dark);
+}
+
 .quote-history-entry time,
 .quote-history-entry > p {
   margin: 0;

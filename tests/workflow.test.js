@@ -26,8 +26,8 @@ test('jefe factura y todos los trabajadores ven el trabajo; uno lo termina', asy
     assert.equal((await workflow.transition('q', boss, { status: 'in_review' })).status, 'in_review');
     const accepted = await workflow.transition('q', boss, { status: 'accepted' });
     assert.equal(accepted.status, 'accepted');
-    assert.equal((await workflow.list(worker)).length, 0);
-    assert.equal(await workflow.transition('q', other, { status: 'ready' }), null);
+    assert.equal((await workflow.list(worker)).length, 1, 'los trabajadores ven trabajos aceptados para preparar archivos');
+    await assert.rejects(workflow.transition('q', other, { status: 'ready' }), { code: 'INVALID_TRANSITION' });
     await assert.rejects(workflow.transition('q', worker, { status: 'delivered' }), { code: 'FORBIDDEN' });
     await assert.rejects(workflow.transition('q', boss, { status: 'invoiced' }), { code: 'INVALID_INVOICE' });
     const invoiced = await workflow.attachInvoice('q', boss, invoiceFile('123'));
@@ -70,6 +70,18 @@ test('jefe puede tomar el trabajo, marcarlo listo y confirmar la entrega', async
     assert.deepEqual(delivered.events.slice(-3).map(({ status, effectiveRole }) => [status, effectiveRole]), [
       ['in_production', 'jefe'], ['ready', 'jefe'], ['delivered', 'jefe'],
     ]);
+  });
+});
+
+test('accept and deliver succeed without work attachments', async () => {
+  await withTestDatabase(async ({ database }) => {
+    const { workflow, boss, worker } = setup(database);
+    assert.equal((await workflow.transition('q', boss, { status: 'in_review' })).status, 'in_review');
+    assert.equal((await workflow.transition('q', boss, { status: 'accepted' })).status, 'accepted');
+    await workflow.attachInvoice('q', boss, invoiceFile('123'));
+    assert.equal((await workflow.transition('q', boss, { status: 'in_production' })).status, 'in_production');
+    assert.equal((await workflow.transition('q', worker, { status: 'ready' })).status, 'ready');
+    assert.equal((await workflow.transition('q', boss, { status: 'delivered' })).status, 'delivered');
   });
 });
 

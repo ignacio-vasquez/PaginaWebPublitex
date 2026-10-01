@@ -31,7 +31,7 @@ function createWorkflowService({ database, quotes, now = Date.now }) {
     const clauses = ["q.status = 'submitted'"];
     const values = [];
     if (context.user.role === 'trabajador') {
-      clauses.push("w.status IN ('invoiced','in_production','ready','delivered')");
+      clauses.push("w.status IN ('accepted','invoiced','in_production','ready','delivered')");
     }
     clauses.push('q.user_id NOT IN (SELECT user_id FROM simulation_users)');
     return { sql: clauses.join(' AND '), values };

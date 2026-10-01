@@ -25,6 +25,7 @@ export function initQuotePage(
   const workName = page.querySelector('[data-quote-work-name]');
   const historySearch = page.querySelector('[data-quote-search]');
   const items = page.querySelector('[data-quote-items]');
+  const attachments = page.querySelector('[data-quote-attachments]');
   const total = page.querySelector('[data-quote-total]');
   const saveStatus = page.querySelector('[data-save-status]');
   const retry = page.querySelector('[data-save-retry]');
@@ -212,6 +213,7 @@ export function initQuotePage(
     page.querySelector('#quote-editor-title').textContent = `Cotización ${current.code || current.id}`;
     page.querySelector('[data-quote-current-status]').textContent = quoteStatusLabel(current.status);
     renderTracking();
+    void loadAttachments(current.id, current.status);
     phone.value = current.phone || '';
     company.value = current.company || '';
     workName.value = current.workName || '';
@@ -245,6 +247,33 @@ export function initQuotePage(
       : `Total estimado: ${money(current.estimatedTotal)}`;
     saveStatus.textContent = editable ? 'Borrador guardado' : `${quoteStatusLabel(current.status)} · Solo lectura`;
     retry.hidden = true;
+  }
+
+  async function loadAttachments(quoteId, quoteStatus) {
+    const visibleStage = ['accepted', 'invoiced', 'in_production', 'ready', 'delivered'].includes(quoteStatus);
+    attachments.hidden = !visibleStage;
+    attachments.replaceChildren();
+    if (!visibleStage) return;
+    try {
+      const files = await request(`/api/quotes/${encodeURIComponent(quoteId)}/attachments`);
+      if (current?.id !== quoteId) return;
+      const title = documentRoot.createElement('h3');
+      title.textContent = 'Archivos del trabajo';
+      const list = documentRoot.createElement('ul');
+      const names = { budget: 'Presupuesto Excel', invoice_backup: 'Factura PDF de respaldo', preview: 'Fotomontaje', completion: 'Foto del trabajo terminado' };
+      for (const file of files) {
+        const item = documentRoot.createElement('li');
+        const link = documentRoot.createElement('a');
+        link.href = file.downloadUrl;
+        link.download = file.filename;
+        link.textContent = `${names[file.kind] || file.kind}: ${file.filename}`;
+        item.append(link);
+        list.append(item);
+      }
+      if (!files.length) list.append(documentRoot.createElement('li')).textContent = 'No hay archivos disponibles todavía.';
+      attachments.append(title, list);
+      attachments.hidden = false;
+    } catch { attachments.hidden = true; }
   }
 
   function saveDetails() {

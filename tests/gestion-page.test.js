@@ -11,6 +11,7 @@ test('jefe puede tomar un trabajo, marcarlo listo y confirmar la entrega desde l
   let current = { id: 'q1', code: 'COT-1', status: 'invoiced', items: [], events: [] };
   initWorkPage(doc, async (url, options) => {
     if (url === '/api/auth/session') return new Response(JSON.stringify({ authenticated: true, user: { role: 'jefe' } }));
+    if (url.endsWith('/attachments')) return new Response(JSON.stringify([]));
     if (options?.method === 'POST') {
       const { status } = JSON.parse(options.body);
       transitions.push(status);
@@ -64,6 +65,7 @@ test('jefe adjunta el archivo, revisa sus datos y confirma antes de facturar', a
   const calls = [];
   initWorkPage(doc, async (url, options) => {
     if (url === '/api/auth/session') return new Response(JSON.stringify({ authenticated: true, user: { role: 'jefe' } }));
+    if (url.endsWith('/attachments')) return new Response(JSON.stringify([]));
     if (url.endsWith('/preview')) return new Response(JSON.stringify({ filename: 'factura.xml', metadata: { number: '123', issueDate: '2024-10-26', total: 11900, issuerRut: '76000000-0', receiverRut: '11111111-1', receiverName: 'Ana' } }));
     if (options?.method === 'POST') {
       calls.push(options.body);
@@ -127,4 +129,69 @@ test('al confirmar entrega sale del listado activo y muestra el acceso al archiv
   await tick();
   assert.equal(doc.querySelectorAll('[data-work-card]').length, 0);
   assert.match(doc.querySelector('[data-work-status]').textContent, /Facturas realizadas/);
+});
+
+test('jefe can replace each of four optional work attachments', async () => {
+  const { initWorkPage } = await import('../js/gestion.js');
+  const doc = createDom(readFileSync('gestion.html', 'utf8')).window.document;
+  const quote = { id: 'q1', code: 'COT-1', workName: 'Letrero Medialuna', status: 'accepted', items: [], events: [] };
+  const calls = [];
+  initWorkPage(doc, async (url, options) => {
+    if (url === '/api/auth/session') return new Response(JSON.stringify({ authenticated: true, user: { role: 'jefe' } }));
+    calls.push(url);
+    if (url === '/api/work/quotes') return new Response(JSON.stringify([quote]));
+    if (url.endsWith('/attachments')) return new Response(JSON.stringify([]));
+    if (options?.method === 'PUT') return new Response(JSON.stringify({ kind: url.split('/').at(-1), filename: 'file' }));
+    return new Response(JSON.stringify([]));
+  });
+  await tick(); await tick();
+  assert.match(doc.querySelector('[data-work-card]').querySelector('h2').textContent, /Letrero Medialuna.*COT-1/);
+  assert.equal(doc.querySelectorAll('[data-attachment-upload]').length, 4);
+  assert.match(doc.querySelector('[data-work-search]').parentElement.textContent, /nombre o código/i);
+  for (const [kind, filename] of [['budget', 'plan.xlsx'], ['invoice_backup', 'respaldo.pdf'], ['preview', 'montaje.jpg'], ['completion', 'final.jpg']]) {
+    const form = doc.querySelector(`[data-attachment-upload="${kind}"]`);
+    const picker = form.querySelector('input[type="file"]');
+    Object.defineProperty(picker, 'files', { configurable: true, value: [new doc.defaultView.File(['file'], filename)] });
+    form.dispatchEvent(new doc.defaultView.Event('submit', { bubbles: true, cancelable: true }));
+    await tick(); await tick();
+  }
+  assert.deepEqual(calls.filter((url) => url.includes('/attachments/')).sort(), [
+    '/api/quotes/q1/attachments/budget', '/api/quotes/q1/attachments/completion',
+    '/api/quotes/q1/attachments/invoice_backup', '/api/quotes/q1/attachments/preview',
+  ]);
+});
+
+test('worker sees downloads but no upload controls for accepted work', async () => {
+  const { initWorkPage } = await import('../js/gestion.js');
+  const doc = createDom(readFileSync('gestion.html', 'utf8')).window.document;
+  initWorkPage(doc, async (url) => new Response(JSON.stringify(url === '/api/auth/session'
+    ? { authenticated: true, user: { role: 'trabajador' } }
+    : url.endsWith('/attachments')
+      ? [{ kind: 'preview', filename: 'montaje.jpg', downloadUrl: '/api/quotes/q1/attachments/preview' }]
+      : [{ id: 'q1', code: 'COT-1', status: 'accepted', items: [], events: [] }])));
+  await tick(); await tick();
+  assert.equal(doc.querySelectorAll('[data-attachment-upload]').length, 0);
+  assert.equal(doc.querySelectorAll('[data-work-card]').length, 1);
+  assert.equal(doc.querySelector('[data-work-attachments] a').getAttribute('href'), '/api/quotes/q1/attachments/preview');
+});
+
+test('team search matches work name without accents and falls back to quote code', async () => {
+  const { initWorkPage } = await import('../js/gestion.js');
+  const doc = createDom(readFileSync('gestion.html', 'utf8')).window.document;
+  initWorkPage(doc, async (url) => new Response(JSON.stringify(url === '/api/auth/session'
+    ? { authenticated: true, user: { role: 'jefe' } }
+    : url.endsWith('/attachments') ? [] : [
+      { id: 'q1', code: 'COT-1', workName: 'Letrero Medialuna', status: 'submitted', items: [], events: [] },
+      { id: 'q2', code: 'COT-2', workName: '', status: 'submitted', items: [], events: [] },
+    ])));
+  await tick(); await tick();
+  const search = doc.querySelector('[data-work-search]');
+  search.value = 'medialúna';
+  search.dispatchEvent(new doc.defaultView.Event('input', { bubbles: true }));
+  assert.equal(doc.querySelectorAll('[data-work-card]').length, 1);
+  assert.match(doc.querySelector('[data-work-card]').textContent, /Letrero Medialuna.*COT-1/);
+  search.value = 'COT-2';
+  search.dispatchEvent(new doc.defaultView.Event('input', { bubbles: true }));
+  assert.equal(doc.querySelectorAll('[data-work-card]').length, 1);
+  assert.match(doc.querySelector('[data-work-card] h2').textContent, /COT-2 · COT-2/);
 });

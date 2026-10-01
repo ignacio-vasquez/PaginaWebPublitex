@@ -33,8 +33,11 @@ export function initWorkPage(documentRoot = document, api = globalThis.fetch) {
   const list = root.querySelector('[data-work-list]');
   const status = root.querySelector('[data-work-status]');
   const refresh = root.querySelector('[data-work-refresh]');
+  const workSearch = root.querySelector('[data-work-search]');
   let role;
   let busy = false;
+  let loadedQuotes = [];
+  let searchTerm = '';
   const node = (tag, text, className) => {
     const element = documentRoot.createElement(tag);
     if (text !== undefined) element.textContent = text;
@@ -50,7 +53,7 @@ export function initWorkPage(documentRoot = document, api = globalThis.fetch) {
   function card(quote) {
     const article = node('article');
     article.dataset.workCard = '';
-    article.append(node('h2', quote.code), node('span', quoteStatusLabel(quote.status), 'quote-status-badge'));
+    article.append(node('h2', `${quote.workName?.trim() || quote.code} · ${quote.code}`), node('span', quoteStatusLabel(quote.status), 'quote-status-badge'));
     article.append(node('p', [quote.company, quote.phone].filter(Boolean).join(' · ') || 'Proyecto particular'));
     for (const item of quote.items || []) {
       article.append(node('h3', item.productLabel), node('p', [item.materialLabel, item.sizeLabel, item.quantityLabel].filter(Boolean).join(' · ')));
@@ -60,6 +63,10 @@ export function initWorkPage(documentRoot = document, api = globalThis.fetch) {
     article.append(node('p', `Estimación: ${new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP' }).format(quote.estimatedTotal || 0)}${quote.hasEvaluation ? ' + productos sujetos a evaluación' : ''}`));
     if (quote.invoicedAt) article.append(node('p', `Trabajo en marcha · Factura ${quote.invoiceNumber} · Registrada: ${new Date(quote.invoicedAt).toLocaleDateString('es-CL')} · Pago hasta: ${new Date(quote.paymentDueAt).toLocaleDateString('es-CL')}`));
     if (quote.invoice) article.append(node('p', `Fecha de emisión: ${new Date(invoiceDate(quote)).toLocaleDateString('es-CL')} · Total facturado: ${new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP' }).format(quote.invoice.total)}`));
+    const attachmentArea = node('section');
+    attachmentArea.dataset.workAttachments = '';
+    article.append(attachmentArea);
+    void renderAttachments(quote, attachmentArea);
     if (['jefe', 'superadmin'].includes(role) && (quote.invoice || ['accepted', 'invoiced', 'in_production', 'ready'].includes(quote.status))) {
       article.append(createInvoiceAttachment(documentRoot, quote, {
         api,
@@ -110,6 +117,72 @@ export function initWorkPage(documentRoot = document, api = globalThis.fetch) {
     if (!events.children.length) article.append(node('p', 'Aún no se factura.'));
     return article;
   }
+  const attachmentTypes = [
+    ['budget', 'Presupuesto Excel', '.xlsx'],
+    ['invoice_backup', 'Factura PDF de respaldo', '.pdf'],
+    ['preview', 'Fotomontaje', '.jpg'],
+    ['completion', 'Foto del trabajo terminado', '.jpg'],
+  ];
+  async function renderAttachments(quote, area) {
+    area.replaceChildren();
+    const title = node('h3', 'Archivos del trabajo');
+    const links = node('ul');
+    area.append(title, links);
+    let files = [];
+    try { files = await request(`/api/quotes/${encodeURIComponent(quote.id)}/attachments`); } catch { /* La cotización sigue operativa si no hay archivos. */ }
+    if (!area.isConnected) return;
+    const names = Object.fromEntries(attachmentTypes.map(([kind, label]) => [kind, label]));
+    for (const file of files) {
+      const item = node('li');
+      const link = node('a', `${names[file.kind] || file.kind}: ${file.filename}`);
+      link.href = file.downloadUrl;
+      link.download = file.filename;
+      item.append(link);
+      links.append(item);
+    }
+    if (!files.length) links.append(node('li', 'Aún no hay archivos.'));
+    if (!['jefe', 'superadmin'].includes(role)) return;
+    area.append(node('p', 'Los archivos son opcionales y no bloquean los cambios de estado.'));
+    for (const [kind, label, accept] of attachmentTypes) {
+      const form = node('form');
+      form.dataset.attachmentUpload = kind;
+      const picker = node('input');
+      picker.type = 'file';
+      picker.accept = accept;
+      picker.required = true;
+      picker.setAttribute('aria-label', `${label} (${accept})`);
+      const submit = node('button', `Cargar ${label.toLocaleLowerCase('es')}`);
+      submit.type = 'submit';
+      const feedback = node('span');
+      feedback.setAttribute('role', 'status');
+      const pickerLabel = node('label', `${label} (${accept}): `);
+      pickerLabel.append(picker);
+      form.append(pickerLabel, submit, feedback);
+      form.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        if (!picker.files?.[0]) { feedback.textContent = 'Selecciona un archivo.'; return; }
+        const body = new (documentRoot.defaultView?.FormData || globalThis.FormData)();
+        body.append('file', picker.files[0]);
+        submit.disabled = true;
+        busy = true;
+        refresh.disabled = true;
+        feedback.textContent = 'Cargando…';
+        try {
+          await request(`/api/quotes/${encodeURIComponent(quote.id)}/attachments/${kind}`, { method: 'PUT', body });
+          feedback.textContent = 'Archivo guardado.';
+          await renderAttachments(quote, area);
+        } catch (error) { feedback.textContent = error.message; }
+        finally { busy = false; refresh.disabled = false; submit.disabled = false; }
+      });
+      area.append(form);
+    }
+  }
+
+  function filteredQuotes() {
+    const search = searchTerm.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('es');
+    return loadedQuotes.filter((quote) => `${quote.workName || ''} ${quote.code || ''}`
+      .normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('es').includes(search));
+  }
   async function load() {
     if (busy) return;
     busy = true;
@@ -130,9 +203,9 @@ export function initWorkPage(documentRoot = document, api = globalThis.fetch) {
       root.querySelector('[data-invoice-archive]').hidden = role === 'trabajador';
       refresh.hidden = false;
       root.querySelector('[data-work-title]').textContent = role === 'trabajador' ? 'Mis trabajos' : 'Gestión de proyectos';
-      const quotes = await request('/api/work/quotes');
-      list.replaceChildren(...quotes.map(card));
-      status.textContent = quotes.length ? `${quotes.length} proyecto${quotes.length === 1 ? '' : 's'} en el listado.` : 'Todavía no hay proyectos disponibles para tu rol.';
+      loadedQuotes = await request('/api/work/quotes');
+      list.replaceChildren(...filteredQuotes().map(card));
+      status.textContent = loadedQuotes.length ? `${filteredQuotes().length} proyecto${filteredQuotes().length === 1 ? '' : 's'} en el listado.` : 'Todavía no hay proyectos disponibles para tu rol.';
     } catch (error) {
       status.textContent = error.message || 'No pudimos conectar. Actualiza el listado para reintentar.';
       refresh.hidden = false;
@@ -142,5 +215,9 @@ export function initWorkPage(documentRoot = document, api = globalThis.fetch) {
     }
   }
   refresh.addEventListener('click', () => { void load(); });
+  workSearch.addEventListener('input', () => {
+    searchTerm = workSearch.value;
+    list.replaceChildren(...filteredQuotes().map(card));
+  });
   void load();
 }

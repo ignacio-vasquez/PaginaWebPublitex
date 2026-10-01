@@ -152,6 +152,45 @@ test('muestra el nombre junto al código y busca por nombre sin distinguir tilde
   assert.equal(doc.querySelector('[data-quote-id]').dataset.quoteId, 'quote-named');
 });
 
+test('client sees shared attachments only after acceptance', async () => {
+  const accepted = { ...draft, status: 'accepted', code: 'COT-000009', workName: 'Trabajo final' };
+  const files = [{ kind: 'budget', filename: 'plan.xlsx', downloadUrl: '/api/quotes/quote-1/attachments/budget' }];
+  const { dom } = await init({ api: async (url) => {
+    if (url === '/api/auth/session') return json({ authenticated: true });
+    if (url === '/api/quotes') return json([accepted]);
+    if (url.endsWith('/attachments')) return json(files);
+    throw new Error(url);
+  } });
+  await new Promise(setImmediate);
+  const region = dom.window.document.querySelector('[data-quote-attachments]');
+  assert.equal(region.hidden, false);
+  assert.equal(region.querySelector('a').getAttribute('href'), files[0].downloadUrl);
+  assert.equal(region.querySelector('a').download, 'plan.xlsx');
+});
+
+test('client attachment area stays hidden before acceptance', async () => {
+  const submitted = { ...draft, status: 'submitted' };
+  const { dom } = await init({ api: async (url) => {
+    if (url === '/api/auth/session') return json({ authenticated: true });
+    if (url === '/api/quotes') return json([submitted]);
+    if (url.endsWith('/attachments')) return json([]);
+    throw new Error(url);
+  } });
+  assert.equal(dom.window.document.querySelector('[data-quote-attachments]').hidden, true);
+});
+
+test('client sees completion photo only after delivery', async () => {
+  const delivered = { ...draft, status: 'delivered' };
+  const { dom } = await init({ api: async (url) => {
+    if (url === '/api/auth/session') return json({ authenticated: true });
+    if (url === '/api/quotes') return json([delivered]);
+    if (url.endsWith('/attachments')) return json([{ kind: 'completion', filename: 'final.jpg', downloadUrl: '/api/quotes/quote-1/attachments/completion' }]);
+    throw new Error(url);
+  } });
+  await new Promise(setImmediate);
+  assert.match(dom.window.document.querySelector('[data-quote-attachments]').textContent, /Foto del trabajo terminado/);
+});
+
 test('la confirmación atrapa el foco, lo restaura y vuelve la cotización de solo lectura', async () => {
   const api = async (url, options = {}) => {
     if (url === '/api/auth/session') return json({ authenticated: true, user: {} });
