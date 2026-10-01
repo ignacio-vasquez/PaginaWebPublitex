@@ -22,6 +22,8 @@ export function initQuotePage(
   const tracking = page.querySelector('[data-quote-tracking]');
   const phone = page.querySelector('[data-quote-phone]');
   const company = page.querySelector('[data-quote-company]');
+  const workName = page.querySelector('[data-quote-work-name]');
+  const historySearch = page.querySelector('[data-quote-search]');
   const items = page.querySelector('[data-quote-items]');
   const total = page.querySelector('[data-quote-total]');
   const saveStatus = page.querySelector('[data-save-status]');
@@ -32,6 +34,7 @@ export function initQuotePage(
   const confirmSubmit = page.querySelector('[data-confirm-submit]');
   const cancelSubmit = page.querySelector('[data-cancel-submit]');
   let quotes = [];
+  let searchTerm = '';
   let current = null;
   let saveQueue = Promise.resolve();
   let editVersion = 0;
@@ -73,19 +76,25 @@ export function initQuotePage(
 
   function renderList() {
     list.replaceChildren();
-    if (!quotes.length) {
+    const normalizedSearch = searchTerm.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('es');
+    const history = [...quotes].filter((quote) => `${quote.workName || ''} ${quote.code || quote.id}`
+      .normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('es').includes(normalizedSearch))
+      .sort((a, b) => b.createdAt - a.createdAt
+      || (b.code || b.id).localeCompare(a.code || a.id, 'es', { numeric: true }));
+    if (!history.length) {
       const empty = documentRoot.createElement('li');
-      empty.textContent = 'Aún no tienes cotizaciones. Crea un borrador para comenzar.';
+      empty.textContent = quotes.length ? 'No hay cotizaciones que coincidan con la búsqueda.' : 'Aún no tienes cotizaciones. Crea un borrador para comenzar.';
       list.append(empty);
     }
-    const history = [...quotes].sort((a, b) => b.createdAt - a.createdAt
-      || (b.code || b.id).localeCompare(a.code || a.id, 'es', { numeric: true }));
     for (const quote of history) {
       const item = documentRoot.createElement('li');
       item.dataset.quoteId = quote.id;
       item.className = 'quote-history-entry';
       const code = documentRoot.createElement('strong');
       code.textContent = quote.code || quote.id;
+      const name = documentRoot.createElement('span');
+      name.dataset.quoteWorkName = '';
+      name.textContent = quote.workName?.trim() || code.textContent;
       const date = documentRoot.createElement('time');
       date.dateTime = new Date(quote.createdAt).toISOString();
       date.textContent = formatDate(quote.createdAt);
@@ -122,7 +131,7 @@ export function initQuotePage(
       const actions = documentRoot.createElement('div');
       actions.className = 'quote-history-actions';
       actions.append(select, viewStatus);
-      item.append(code, date, status, count, actions);
+      item.append(name, code, date, status, count, actions);
       list.append(item);
     }
   }
@@ -205,9 +214,11 @@ export function initQuotePage(
     renderTracking();
     phone.value = current.phone || '';
     company.value = current.company || '';
+    workName.value = current.workName || '';
     const editable = current.status === 'draft';
     phone.disabled = !editable;
     company.disabled = !editable;
+    workName.disabled = !editable;
     submitButton.disabled = !editable;
     page.querySelector('[data-add-item]').hidden = !editable;
     items.replaceChildren();
@@ -239,7 +250,7 @@ export function initQuotePage(
   function saveDetails() {
     const quoteId = current.id;
     const version = ++editVersion;
-    const details = { phone: phone.value.trim(), company: company.value.trim() };
+    const details = { phone: phone.value.trim(), company: company.value.trim(), workName: workName.value.trim() };
     lastSave = details;
     saveStatus.textContent = 'Guardando…';
     retry.hidden = true;
@@ -268,6 +279,11 @@ export function initQuotePage(
 
   phone.addEventListener('change', saveDetails);
   company.addEventListener('change', saveDetails);
+  workName.addEventListener('change', saveDetails);
+  historySearch.addEventListener('input', () => {
+    searchTerm = historySearch.value;
+    renderList();
+  });
   retry.addEventListener('click', () => {
     if (lastSave) saveDetails();
   });
@@ -310,10 +326,11 @@ export function initQuotePage(
     confirmSubmit.disabled = true;
     phone.disabled = true;
     company.disabled = true;
+    workName.disabled = true;
     try {
       await saveQueue;
       if (lastSaveError?.quoteId !== current.id && (phone.value.trim() !== (current.phone || '')
-        || company.value.trim() !== (current.company || ''))) {
+        || company.value.trim() !== (current.company || '') || workName.value.trim() !== (current.workName || ''))) {
         await saveDetails();
       }
       if (lastSaveError?.quoteId === current.id) {
@@ -330,6 +347,7 @@ export function initQuotePage(
       confirmSubmit.disabled = false;
       phone.disabled = current?.status !== 'draft';
       company.disabled = current?.status !== 'draft';
+      workName.disabled = current?.status !== 'draft';
     }
   });
 

@@ -33,7 +33,7 @@ function createQuoteRepository({ database, now = Date.now }) {
     FROM quote_item_extras WHERE quote_item_id = ? ORDER BY extra_id
   `);
   const updateDetails = database.prepare(`
-    UPDATE quotes SET phone = ?, company = ?, updated_at = ?
+      UPDATE quotes SET phone = ?, company = ?, work_name = ?, updated_at = ?
     WHERE id = ? AND user_id = ? AND status = 'draft'
   `);
   const updateDraftWorkName = database.prepare(`
@@ -196,9 +196,9 @@ function createQuoteRepository({ database, now = Date.now }) {
       return mapQuote(findQuote.get(id, userId));
     },
 
-    async saveDetails({ id, userId, phone, company }) {
+    async saveDetails({ id, userId, phone, company, workName = '' }) {
       if (!ensureEditable(id, userId)) return null;
-      updateDetails.run(phone, company, now(), id, userId);
+      updateDetails.run(phone, company, workName, now(), id, userId);
       return mapQuote(findQuote.get(id, userId));
     },
 

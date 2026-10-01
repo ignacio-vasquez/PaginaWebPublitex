@@ -64,7 +64,13 @@ function createQuoteService({ quotes, catalogService, createId }) {
         userId,
         phone: normalizePhone(details.phone),
         company: normalizeText(details.company, { field: 'La empresa', maxLength: 160 }),
+        workName: normalizeText(details.workName, { field: 'El nombre del trabajo', maxLength: 120 }),
       });
+    },
+
+    async saveWorkName(id, userId, value) {
+      const workName = normalizeText(value, { field: 'El nombre del trabajo', maxLength: 120 });
+      return quotes.saveWorkName({ id, userId, workName });
     },
 
     async addItem(quoteId, userId, input) {

@@ -45,6 +45,8 @@ test('define navegación semántica, editor accesible y confirmación de envío'
   assert.ok(documentRoot.querySelector('[data-quote-editor]'));
   assert.ok(documentRoot.querySelector('label[for="quote-phone"]'));
   assert.ok(documentRoot.querySelector('label[for="quote-company"]'));
+  assert.ok(documentRoot.querySelector('label[for="quote-work-name"]'));
+  assert.ok(documentRoot.querySelector('[data-quote-search]'));
   assert.ok(documentRoot.querySelector('[data-add-item]'));
   assert.equal(documentRoot.querySelector('[data-submit-dialog]').getAttribute('aria-modal'), 'true');
   assert.match(documentRoot.body.textContent, /Guardando…|Borrador guardado|Reintentar/);
@@ -121,7 +123,7 @@ test('autosave recorta detalles y conserva los valores visibles si falla', async
   company.value = '  Publitex  ';
   phone.dispatchEvent(new dom.window.Event('change', { bubbles: true }));
   await new Promise(setImmediate);
-  assert.deepEqual(calls[0], { phone: '+56 9 1234 5678', company: 'Publitex' });
+  assert.deepEqual(calls[0], { phone: '+56 9 1234 5678', company: 'Publitex', workName: '' });
 
   failSave = true;
   phone.value = '+56 9 9999 9999';
@@ -130,6 +132,24 @@ test('autosave recorta detalles y conserva los valores visibles si falla', async
   assert.equal(phone.value, '+56 9 9999 9999');
   assert.equal(dom.window.document.querySelector('[data-save-retry]').hidden, false);
   assert.match(dom.window.document.querySelector('[data-save-status]').textContent, /Sin conexión/);
+});
+
+test('muestra el nombre junto al código y busca por nombre sin distinguir tildes', async () => {
+  const named = { ...draft, id: 'quote-named', code: 'COT-000002', workName: 'Letrero Medialuna', createdAt: 2 };
+  const unnamed = { ...draft, id: 'quote-old', code: 'COT-000001', workName: '', createdAt: 1 };
+  const { dom } = await init({ api: async (url) => {
+    if (url === '/api/auth/session') return json({ authenticated: true });
+    if (url === '/api/quotes') return json([named, unnamed]);
+    throw new Error(url);
+  } });
+  const doc = dom.window.document;
+  assert.match(doc.querySelector('[data-quote-id="quote-named"]').textContent, /Letrero Medialuna.*COT-000002/);
+  assert.match(doc.querySelector('[data-quote-id="quote-old"]').textContent, /COT-000001.*COT-000001/);
+  const search = doc.querySelector('[data-quote-search]');
+  search.value = 'medialúna';
+  search.dispatchEvent(new dom.window.Event('input', { bubbles: true }));
+  assert.equal(doc.querySelectorAll('[data-quote-id]').length, 1);
+  assert.equal(doc.querySelector('[data-quote-id]').dataset.quoteId, 'quote-named');
 });
 
 test('la confirmación atrapa el foco, lo restaura y vuelve la cotización de solo lectura', async () => {

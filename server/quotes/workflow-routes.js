@@ -20,7 +20,7 @@ function createWorkflowRouter({ authService, workflowService }) {
     return async (request, response, next) => {
       try { await callback(request, response); }
       catch (error) {
-        const status = { FORBIDDEN: 403, NOT_FOUND: 404, INVALID_TRANSITION: 409, INVALID_INVOICE: 400, DUPLICATE_INVOICE: 409 }[error.code];
+        const status = { FORBIDDEN: 403, NOT_FOUND: 404, INVALID_TRANSITION: 409, INVALID_INVOICE: 400, DUPLICATE_INVOICE: 409, INVALID_NAME: 400 }[error.code];
         if (status) response.status(status).json({ error: error.message });
         else next(error);
       }
@@ -28,6 +28,10 @@ function createWorkflowRouter({ authService, workflowService }) {
   }
   router.get('/quotes', action(async (request, response) => response.json(await workflowService.list(context(request)))));
   router.get('/invoices', action(async (request, response) => response.json(await workflowService.archived(context(request)))));
+  router.patch('/quotes/:id/name', action(async (request, response) => {
+    const result = await workflowService.saveWorkName(request.params.id, context(request), request.body?.workName);
+    return response.json(result);
+  }));
   router.post('/quotes/:id/invoice/preview', invoiceUpload, action(async (request, response) => {
     response.json(await workflowService.previewInvoice(request.params.id, context(request), request.file));
   }));

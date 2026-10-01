@@ -63,6 +63,16 @@ function createWorkflowService({ database, quotes, now = Date.now }) {
   }
 
   return {
+    async saveWorkName(id, context, value) {
+      if (!['jefe', 'superadmin'].includes(context?.user?.role)) {
+        throw failure('FORBIDDEN', 'Solo el jefe puede editar el nombre del trabajo.');
+      }
+      const visible = visibleRows({ ...context, user: { ...context.user, role: context.user.role } }, id);
+      if (!visible.length) throw failure('NOT_FOUND', 'Cotización no encontrada.');
+      const workName = typeof value === 'string' ? value.trim() : '';
+      if (typeof value !== 'string' || workName.length > 120) throw failure('INVALID_NAME', 'El nombre del trabajo debe tener hasta 120 caracteres.');
+      return quotes.saveWorkNameForTeam({ id, workName });
+    },
     async previewInvoice(id, context, file) {
       invoiceTarget(id, context, true);
       const { filename, mediaType, metadata } = await inspectInvoice(file, {}, false);

@@ -23,12 +23,15 @@
           <aside aria-labelledby="quote-list-title">
             <h2 id="quote-list-title">Historial</h2>
             <p>Encuentra tus cotizaciones y consulta su avance.</p>
+            <p><label for="quote-history-search">Buscar por nombre o código</label><input id="quote-history-search" data-quote-search type="search" autocomplete="off"></p>
             <button type="button" data-create-quote>Nueva cotización</button>
             <ul data-quote-list tabindex="0" aria-labelledby="quote-list-title"></ul>
           </aside>
           <section data-quote-editor aria-labelledby="quote-editor-title" hidden>
             <h2 id="quote-editor-title" tabindex="-1">Cotización</h2>
             <p data-quote-current-status class="quote-status-badge"></p>
+            <p><label for="quote-work-name">Nombre del trabajo</label><input id="quote-work-name" data-quote-work-name maxlength="120" autocomplete="off" aria-describedby="quote-work-name-help"></p>
+            <p id="quote-work-name-help">Opcional; el código de cotización siempre se conserva.</p>
             <section data-quote-tracking aria-labelledby="quote-tracking-title" hidden>
               <h3 id="quote-tracking-title" tabindex="-1">Estado de la cotización</h3>
               <p data-tracking-description></p>

@@ -133,3 +133,45 @@ test('mapea datos inválidos a 400 y recursos inexistentes a 404', async () => {
     assert.equal(missing.status, 404);
   });
 });
+
+test('guarda un nombre recortado en un borrador propio y rechaza uno demasiado largo', async () => {
+  await withQuoteServer(async ({ baseUrl }) => {
+    const cookie = await register(baseUrl, 'Ana', 'ana-name@example.com');
+    const created = await (await request(baseUrl, '/api/quotes', { method: 'POST', cookie, body: {} })).json();
+    const saved = await request(baseUrl, `/api/quotes/${created.id}`, {
+      method: 'PATCH', cookie, body: { phone: '', company: '', workName: ' Trabajo Quijote ' },
+    });
+    assert.equal((await saved.json()).workName, 'Trabajo Quijote');
+    const invalid = await request(baseUrl, `/api/quotes/${created.id}`, {
+      method: 'PATCH', cookie, body: { phone: '', company: '', workName: 'x'.repeat(121) },
+    });
+    assert.equal(invalid.status, 400);
+  });
+});
+
+test('jefe puede asignar un nombre a una cotización enviada y el cliente ajeno recibe 404', async () => {
+  await withQuoteServer(async ({ baseUrl, runtime }) => {
+    runtime.database.prepare(`INSERT INTO users (id,name,email,password_hash,role,created_at,updated_at)
+      VALUES ('boss','Jefe','jefe@example.com','hash:secreto1','jefe',0,0)`).run();
+    const owner = await register(baseUrl, 'Ana', 'ana-owner@example.com');
+    const unrelated = await register(baseUrl, 'Beto', 'beto-other@example.com');
+    const createdResponse = await request(baseUrl, '/api/quotes', { method: 'POST', cookie: owner, body: {} });
+    const created = await createdResponse.json();
+    assert.equal(createdResponse.status, 201);
+    const itemResponse = await request(baseUrl, `/api/quotes/${created.id}/items`, { method: 'POST', cookie: owner, body: selection });
+    assert.equal(itemResponse.status, 201, JSON.stringify(await itemResponse.json()));
+    await request(baseUrl, `/api/quotes/${created.id}`, { method: 'PATCH', cookie: owner, body: { phone: '912345678', company: '' } });
+    const submitted = await request(baseUrl, `/api/quotes/${created.id}/submit`, { method: 'POST', cookie: owner, body: {} });
+    assert.equal(submitted.status, 200, JSON.stringify(await submitted.json()));
+    const login = await request(baseUrl, '/api/auth/login', { method: 'POST', body: { email: 'jefe@example.com', password: 'secreto1' } });
+    const boss = login.headers.get('set-cookie').split(';')[0];
+    const staffList = await request(baseUrl, '/api/work/quotes', { cookie: boss });
+    assert.ok((await staffList.json()).some((quote) => quote.id === created.id));
+    const named = await request(baseUrl, `/api/work/quotes/${created.id}/name`, { method: 'PATCH', cookie: boss, body: { workName: 'Letrero medialuna' } });
+    const namedQuote = await named.json();
+    assert.equal(named.status, 200);
+    assert.equal(namedQuote.workName, 'Letrero medialuna');
+    assert.equal((await request(baseUrl, `/api/quotes/${created.id}`, { cookie: unrelated })).status, 404);
+    assert.equal((await request(baseUrl, `/api/work/quotes/${created.id}/name`, { method: 'PATCH', cookie: unrelated, body: { workName: 'Ajeno' } })).status, 403);
+  });
+});
