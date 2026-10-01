@@ -79,3 +79,26 @@ test('archive shows and searches work name alongside the permanent code', async 
   assert.equal(doc.querySelectorAll('[data-invoice-card]').length, 1);
   assert.match(doc.querySelector('[data-invoice-card]').textContent, /Letrero Medialuna/);
 });
+
+test('delivered archive keeps work attachments available to jefe after delivery', async () => {
+  const { initInvoiceArchive } = await import('../js/facturas.js');
+  const doc = createDom(readFileSync('facturas.html', 'utf8')).window.document;
+  const record = { id: 'delivered', code: 'COT-000092', workName: 'Trabajo entregado', invoiceNumber: '92', status: 'delivered',
+    invoicedAt: Date.UTC(2026, 8, 1), createdAt: Date.UTC(2026, 8, 1), invoice: { issueDate: '2026-09-01', total: 1000 }, items: [], events: [] };
+  const calls = [];
+  initInvoiceArchive(doc, async (url, options = {}) => {
+    calls.push([url, options]);
+    if (url === '/api/auth/session') return new Response(JSON.stringify({ authenticated: true, user: { role: 'jefe' } }));
+    if (url === '/api/work/invoices') return new Response(JSON.stringify([record]));
+    if (url.endsWith('/attachments')) return new Response(JSON.stringify([{ kind: 'completion', filename: 'final.jpg', downloadUrl: '/api/quotes/delivered/attachments/completion' }]));
+    if (options.method === 'PUT') return new Response(JSON.stringify({ kind: 'completion', filename: 'final.jpg' }));
+    return new Response(JSON.stringify([]));
+  });
+  await tick(); await tick();
+  assert.equal(doc.querySelector('[data-invoice-attachments] a').getAttribute('href'), '/api/quotes/delivered/attachments/completion');
+  const picker = doc.querySelector('[data-invoice-attachment-upload="completion"] input[type=file]');
+  Object.defineProperty(picker, 'files', { configurable: true, value: [new doc.defaultView.File(['jpg'], 'final.jpg')] });
+  doc.querySelector('[data-invoice-attachment-upload="completion"]').dispatchEvent(new doc.defaultView.Event('submit', { bubbles: true, cancelable: true }));
+  await tick(); await tick();
+  assert.ok(calls.some(([url, options]) => url === '/api/quotes/delivered/attachments/completion' && options.method === 'PUT'));
+});

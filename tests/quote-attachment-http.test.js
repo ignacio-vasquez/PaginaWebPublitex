@@ -69,8 +69,14 @@ test('client and worker cannot upload', async () => fixture(async ({ base, cooki
 }));
 
 test('unrelated quote returns not found', async () => fixture(async ({ base, cookies, client }) => {
+  await fetch(`${base}/api/work/quotes/q-other/name`, { method: 'PATCH', headers: { cookie: cookies.jefe, 'content-type': 'application/json' }, body: JSON.stringify({ workName: 'Confidencial' }) });
+  await fetch(`${base}/api/quotes/q-other/attachments/invoice_backup`, { method: 'PUT', headers: { cookie: cookies.jefe }, body: pdfForm() });
   const result = await fetch(`${base}/api/quotes/q-other/attachments`, { headers: { cookie: cookies[client.id] } });
   assert.equal(result.status, 404);
+  const download = await fetch(`${base}/api/quotes/q-other/attachments/invoice_backup`, { headers: { cookie: cookies[client.id] } });
+  assert.equal(download.status, 404);
+  const quote = await fetch(`${base}/api/quotes/q-other`, { headers: { cookie: cookies[client.id] } });
+  assert.equal(quote.status, 404);
 }));
 
 test('oversize upload returns 413 with private download headers', async () => fixture(async ({ base, cookies }) => {

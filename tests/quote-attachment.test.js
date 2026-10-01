@@ -1,23 +1,26 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const { deflateRawSync } = require('node:zlib');
 const { withTestDatabase } = require('./database-helper');
 const { createQuoteRepository } = require('../server/quotes/quote-repository');
 const { createQuoteAttachmentService } = require('../server/quotes/attachment-service');
 
-function zipFile(entries) {
+function zipFile(entries, compressedNames = []) {
   const locals = [];
   const centrals = [];
   let offset = 0;
   for (const [name, content] of Object.entries(entries)) {
     const filename = Buffer.from(name);
-    const body = Buffer.from(content);
+    const originalBody = Buffer.from(content);
+    const compressed = compressedNames.includes(name);
+    const body = compressed ? deflateRawSync(originalBody) : originalBody;
     const local = Buffer.alloc(30 + filename.length + body.length);
     local.writeUInt32LE(0x04034b50, 0);
     local.writeUInt16LE(20, 4);
     local.writeUInt32LE(0, 6);
-    local.writeUInt32LE(0, 8);
+    local.writeUInt16LE(compressed ? 8 : 0, 8);
     local.writeUInt32LE(body.length, 18);
-    local.writeUInt32LE(body.length, 22);
+    local.writeUInt32LE(originalBody.length, 22);
     local.writeUInt16LE(filename.length, 26);
     filename.copy(local, 30);
     body.copy(local, 30 + filename.length);
@@ -26,9 +29,9 @@ function zipFile(entries) {
     central.writeUInt32LE(0x02014b50, 0);
     central.writeUInt16LE(20, 4);
     central.writeUInt16LE(20, 6);
-    central.writeUInt32LE(0, 8);
+    central.writeUInt16LE(compressed ? 8 : 0, 10);
     central.writeUInt32LE(body.length, 20);
-    central.writeUInt32LE(body.length, 24);
+    central.writeUInt32LE(originalBody.length, 24);
     central.writeUInt16LE(filename.length, 28);
     central.writeUInt32LE(offset, 42);
     filename.copy(central, 46);
@@ -38,15 +41,15 @@ function zipFile(entries) {
   const directory = Buffer.concat(centrals);
   const end = Buffer.alloc(22);
   end.writeUInt32LE(0x06054b50, 0);
-  end.writeUInt16LE(entries.length, 8);
-  end.writeUInt16LE(entries.length, 10);
+  end.writeUInt16LE(Object.keys(entries).length, 8);
+  end.writeUInt16LE(Object.keys(entries).length, 10);
   end.writeUInt32LE(directory.length, 12);
   end.writeUInt32LE(offset, 16);
   return Buffer.concat([...locals, directory, end]);
 }
 
 const files = {
-  budget: { originalname: 'presupuesto.xlsx', buffer: zipFile({ '[Content_Types].xml': '<Types><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/></Types>', 'xl/workbook.xml': '<workbook/>' }) },
+  budget: { originalname: 'presupuesto.xlsx', buffer: zipFile({ '[Content_Types].xml': '<Types><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/></Types>', 'xl/workbook.xml': '<workbook></workbook>' }) },
   invoice_backup: { originalname: 'respaldo.pdf', buffer: Buffer.from('%PDF-1.7\ncontenido') },
   preview: { originalname: 'montaje.jpg', buffer: Buffer.from([0xff, 0xd8, 0xff, 0xe0, 1, 2, 0xff, 0xd9]) },
   completion: { originalname: 'final.jpg', buffer: Buffer.from([0xff, 0xd8, 0xff, 0xe0, 3, 4, 0xff, 0xd9]) },
@@ -85,10 +88,9 @@ test('rejects mismatched extension and signature, empty and oversized files', as
 
 test('replacing an attachment preserves other kinds', async () => fixture(async ({ service }) => {
   const boss = { user: { id: 'boss', role: 'jefe' } };
-  await service.upload('quote-1', 'preview', boss, files.preview);
-  await service.upload('quote-1', 'invoice_backup', boss, files.invoice_backup);
+  for (const kind of Object.keys(files)) await service.upload('quote-1', kind, boss, files[kind]);
   await service.upload('quote-1', 'preview', boss, { ...files.preview, originalname: 'new.jpg' });
-  assert.deepEqual((await service.list('quote-1', boss)).map((file) => file.filename).sort(), ['new.jpg', 'respaldo.pdf']);
+  assert.deepEqual((await service.list('quote-1', boss)).map((file) => file.filename).sort(), ['final.jpg', 'new.jpg', 'presupuesto.xlsx', 'respaldo.pdf']);
 }));
 
 test('customer attachment access is limited to owned quotes', async () => fixture(async ({ service, database, quotes }) => {
@@ -112,8 +114,38 @@ test('client file visibility follows accepted and delivered stages', async () =>
   await service.upload('quote-1', 'preview', boss, files.preview);
   await service.upload('quote-1', 'completion', boss, files.completion);
   assert.deepEqual((await service.list('quote-1', owner)).map((file) => file.kind), ['preview']);
+  await assert.rejects(service.download('quote-1', 'completion', owner), { code: 'NOT_FOUND' });
   database.prepare("UPDATE quote_workflow SET status='delivered' WHERE quote_id='quote-1'").run();
   assert.deepEqual((await service.list('quote-1', owner)).map((file) => file.kind).sort(), ['completion', 'preview']);
+}));
+
+test('client cannot read attachments before acceptance', async () => fixture(async ({ service, database }) => {
+  database.prepare("UPDATE quote_workflow SET status='in_review' WHERE quote_id='quote-1'").run();
+  await service.upload('quote-1', 'preview', { user: { id: 'boss', role: 'jefe' } }, files.preview);
+  await assert.rejects(service.list('quote-1', { user: { id: 'owner', role: 'cliente' } }), { code: 'NOT_FOUND' });
+}));
+
+test('malformed XLSX without a valid ZIP directory or workbook is rejected', async () => fixture(async ({ service }) => {
+  const boss = { user: { id: 'boss', role: 'jefe' } };
+  const malformed = Buffer.concat([Buffer.from('PK\x03\x04'), Buffer.from('[Content_Types].xml xl/workbook.xml spreadsheetml.sheet.main+xml')]);
+  await assert.rejects(service.upload('quote-1', 'budget', boss, { originalname: 'bad.xlsx', buffer: malformed }), { code: 'INVALID_ATTACHMENT' });
+}));
+
+test('XLSX requires a real workbook package root and matching content type', async () => fixture(async ({ service }) => {
+  const malformed = zipFile({
+    '[Content_Types].xml': '<html><Types><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/></Types></html>',
+    'xl/workbook.xml': '<html><workbook></workbook></html>',
+  });
+  await assert.rejects(service.upload('quote-1', 'budget', { user: { id: 'boss', role: 'jefe' } }, {
+    originalname: 'fake.xlsx', buffer: malformed,
+  }), { code: 'INVALID_ATTACHMENT' });
+}));
+
+test('compressed XLSX XML expansion is bounded', async () => fixture(async ({ service }) => {
+  const xml = Buffer.from(`<Types><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>${' '.repeat(12 * 1024 * 1024)}</Types>`);
+  const bomb = zipFile({ '[Content_Types].xml': xml, 'xl/workbook.xml': '<workbook></workbook>' }, ['[Content_Types].xml']);
+  assert.ok(bomb.length < 10 * 1024 * 1024);
+  await assert.rejects(service.upload('quote-1', 'budget', { user: { id: 'boss', role: 'jefe' } }, { originalname: 'bomb.xlsx', buffer: bomb }), { code: 'INVALID_ATTACHMENT' });
 }));
 
 test('worker can read accepted attachments', async () => fixture(async ({ service }) => {

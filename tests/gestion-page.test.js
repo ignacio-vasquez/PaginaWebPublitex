@@ -195,3 +195,50 @@ test('team search matches work name without accents and falls back to quote code
   assert.equal(doc.querySelectorAll('[data-work-card]').length, 1);
   assert.match(doc.querySelector('[data-work-card] h2').textContent, /COT-2 · COT-2/);
 });
+
+test('team search keeps the current state after a transition', async () => {
+  const { initWorkPage } = await import('../js/gestion.js');
+  const doc = createDom(readFileSync('gestion.html', 'utf8')).window.document;
+  let current = { id: 'q1', code: 'COT-1', status: 'invoiced', items: [], events: [] };
+  initWorkPage(doc, async (url, options) => {
+    if (url === '/api/auth/session') return new Response(JSON.stringify({ authenticated: true, user: { role: 'jefe' } }));
+    if (url.endsWith('/attachments')) return new Response(JSON.stringify([]));
+    if (options?.method === 'POST') { current = { ...current, status: 'in_production' }; return new Response(JSON.stringify(current)); }
+    if (url === '/api/work/quotes') return new Response(JSON.stringify([current]));
+    return new Response(JSON.stringify([]));
+  });
+  await tick(); await tick();
+  doc.querySelector('[data-work-transition]').click();
+  await tick(); await tick();
+  assert.equal(doc.querySelector('[data-work-transition]').textContent, 'Marcar lista');
+  const search = doc.querySelector('[data-work-search]');
+  search.value = 'COT-1';
+  search.dispatchEvent(new doc.defaultView.Event('input', { bubbles: true }));
+  assert.equal(doc.querySelector('[data-work-transition]').textContent, 'Marcar lista');
+});
+
+test('jefe can edit work name from project management', async () => {
+  const { initWorkPage } = await import('../js/gestion.js');
+  const doc = createDom(readFileSync('gestion.html', 'utf8')).window.document;
+  const calls = [];
+  const quote = { id: 'q1', code: 'COT-1', workName: '', status: 'submitted', items: [], events: [] };
+  initWorkPage(doc, async (url, options = {}) => {
+    if (url === '/api/auth/session') return new Response(JSON.stringify({ authenticated: true, user: { role: 'jefe' } }));
+    if (url.endsWith('/attachments')) return new Response(JSON.stringify([]));
+    if (options.method === 'PATCH') { calls.push([url, JSON.parse(options.body)]); return new Response(JSON.stringify({ ...quote, workName: 'Letrero Quijote' })); }
+    if (url === '/api/work/quotes') return new Response(JSON.stringify([quote]));
+    return new Response(JSON.stringify([]));
+  });
+  await tick(); await tick();
+  const input = doc.querySelector('[data-work-name-input]');
+  assert.ok(input);
+  input.value = 'Letrero Quijote';
+  doc.querySelector('[data-save-work-name]').click();
+  await tick(); await tick();
+  assert.deepEqual(calls, [['/api/work/quotes/q1/name', { workName: 'Letrero Quijote' }]]);
+  assert.match(doc.querySelector('[data-work-card]').textContent, /Letrero Quijote/);
+  const search = doc.querySelector('[data-work-search]');
+  search.value = 'Quijote';
+  search.dispatchEvent(new doc.defaultView.Event('input', { bubbles: true }));
+  assert.equal(doc.querySelectorAll('[data-work-card]').length, 1);
+});

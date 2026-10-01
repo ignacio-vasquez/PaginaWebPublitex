@@ -54,6 +54,39 @@ export function initWorkPage(documentRoot = document, api = globalThis.fetch) {
     const article = node('article');
     article.dataset.workCard = '';
     article.append(node('h2', `${quote.workName?.trim() || quote.code} · ${quote.code}`), node('span', quoteStatusLabel(quote.status), 'quote-status-badge'));
+    if (['jefe', 'superadmin'].includes(role)) {
+      const editor = node('div');
+      editor.dataset.workNameEditor = '';
+      const label = node('label', 'Nombre del trabajo (opcional, máximo 120 caracteres)');
+      const input = node('input');
+      input.type = 'text';
+      input.maxLength = 120;
+      input.value = quote.workName || '';
+      input.dataset.workNameInput = '';
+      const saveName = node('button', 'Guardar nombre');
+      saveName.type = 'button';
+      saveName.dataset.saveWorkName = '';
+      const result = node('span');
+      result.setAttribute('role', 'status');
+      label.append(input);
+      saveName.addEventListener('click', async () => {
+        const value = input.value.trim();
+        if (value.length > 120) { result.textContent = 'El nombre admite hasta 120 caracteres.'; return; }
+        saveName.disabled = true;
+        result.textContent = 'Guardando…';
+        try {
+          const updated = await request(`/api/work/quotes/${encodeURIComponent(quote.id)}/name`, {
+            method: 'PATCH', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ workName: value }),
+          });
+          updateLoadedQuote(updated);
+          result.textContent = 'Nombre guardado.';
+          article.replaceWith(card(updated));
+        } catch (error) { result.textContent = error.message; }
+        finally { saveName.disabled = false; }
+      });
+      editor.append(label, saveName, result);
+      article.append(editor);
+    }
     article.append(node('p', [quote.company, quote.phone].filter(Boolean).join(' · ') || 'Proyecto particular'));
     for (const item of quote.items || []) {
       article.append(node('h3', item.productLabel), node('p', [item.materialLabel, item.sizeLabel, item.quantityLabel].filter(Boolean).join(' · ')));
@@ -71,7 +104,7 @@ export function initWorkPage(documentRoot = document, api = globalThis.fetch) {
       article.append(createInvoiceAttachment(documentRoot, quote, {
         api,
         onBusy(value) { busy = value; refresh.disabled = value; },
-        onSaved(updated) { article.replaceWith(card(updated)); status.textContent = 'Factura guardada y vinculada a la cotización.'; },
+        onSaved(updated) { updateLoadedQuote(updated); article.replaceWith(card(updated)); status.textContent = 'Factura guardada y vinculada a la cotización.'; },
       }));
     }
     const action = transitions[quote.status]?.[role];
@@ -91,9 +124,11 @@ export function initWorkPage(documentRoot = document, api = globalThis.fetch) {
             method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body),
           });
           if (updated.status === 'delivered') {
+            loadedQuotes = loadedQuotes.filter((item) => item.id !== updated.id);
             article.remove();
             status.textContent = 'Entrega confirmada. La factura está en Facturas realizadas.';
           } else {
+            updateLoadedQuote(updated);
             article.replaceWith(card(updated));
             status.textContent = 'Proyecto actualizado.';
           }
@@ -116,6 +151,11 @@ export function initWorkPage(documentRoot = document, api = globalThis.fetch) {
     article.append(events);
     if (!events.children.length) article.append(node('p', 'Aún no se factura.'));
     return article;
+  }
+  function updateLoadedQuote(quote) {
+    if (quote.status === 'delivered') loadedQuotes = loadedQuotes.filter((item) => item.id !== quote.id);
+    else loadedQuotes = loadedQuotes.map((item) => item.id === quote.id ? quote : item);
+    if (!loadedQuotes.some((item) => item.id === quote.id) && quote.status !== 'delivered') loadedQuotes.push(quote);
   }
   const attachmentTypes = [
     ['budget', 'Presupuesto Excel', '.xlsx'],

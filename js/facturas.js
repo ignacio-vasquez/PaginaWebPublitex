@@ -6,6 +6,12 @@ const normalize = value => String(value || '').normalize('NFD').replace(/[\u0300
   .toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim().replace(/\s+/g, ' ');
 const dateText = timestamp => timestamp ? new Date(timestamp).toLocaleString('es-CL', { dateStyle: 'long', timeStyle: 'short' }) : 'Sin fecha registrada';
 const invoiceYear = quote => new Date(invoiceDate(quote)).getFullYear();
+const workAttachments = [
+  ['budget', 'Presupuesto Excel', '.xlsx'],
+  ['invoice_backup', 'Factura PDF de respaldo', '.pdf'],
+  ['preview', 'Fotomontaje', '.jpg'],
+  ['completion', 'Foto del trabajo terminado', '.jpg'],
+];
 
 function dateTerms(timestamp) {
   if (!timestamp) return '';
@@ -88,7 +94,69 @@ export function initInvoiceArchive(documentRoot = document, api = globalThis.fet
         status.textContent = `Factura guardada en ${selectedYear} y vinculada a ${quote.code}.`;
       },
     }));
+    const attachmentArea = node('section');
+    attachmentArea.dataset.invoiceAttachments = '';
+    details.append(attachmentArea);
+    void renderWorkAttachments(quote, attachmentArea);
     return details;
+  }
+
+  async function renderWorkAttachments(quote, area) {
+    const heading = node('h3', 'Archivos del trabajo');
+    const links = node('ul');
+    area.replaceChildren(heading, links);
+    let files = [];
+    try {
+      const response = await api(`/api/quotes/${encodeURIComponent(quote.id)}/attachments`, { credentials: 'same-origin' });
+      const body = await response.json();
+      if (response.ok && Array.isArray(body)) files = body;
+    } catch { /* El archivo de facturas sigue disponible si la carga de archivos falla. */ }
+    if (!area.isConnected) return;
+    const names = Object.fromEntries(workAttachments.map(([kind, label]) => [kind, label]));
+    for (const file of files) {
+      const link = node('a', `${names[file.kind] || file.kind}: ${file.filename}`);
+      link.href = file.downloadUrl;
+      link.download = file.filename;
+      const item = node('li');
+      item.append(link);
+      links.append(item);
+    }
+    if (!files.length) links.append(node('li', 'Aún no hay archivos.'));
+    for (const [kind, label, accept] of workAttachments) {
+      const form = node('form');
+      form.dataset.invoiceAttachmentUpload = kind;
+      const picker = node('input');
+      picker.type = 'file';
+      picker.accept = accept;
+      picker.required = true;
+      picker.setAttribute('aria-label', `${label} (${accept})`);
+      const pickerLabel = node('label', `${label} (${accept}): `);
+      pickerLabel.append(picker);
+      const submit = node('button', `Cargar ${label.toLocaleLowerCase('es')}`);
+      submit.type = 'submit';
+      const feedback = node('span');
+      feedback.setAttribute('role', 'status');
+      form.append(pickerLabel, submit, feedback);
+      form.addEventListener('submit', async event => {
+        event.preventDefault();
+        if (!picker.files?.[0]) { feedback.textContent = 'Selecciona un archivo.'; return; }
+        const body = new (documentRoot.defaultView?.FormData || globalThis.FormData)();
+        body.append('file', picker.files[0]);
+        submit.disabled = true;
+        feedback.textContent = 'Cargando…';
+        try {
+          const response = await api(`/api/quotes/${encodeURIComponent(quote.id)}/attachments/${kind}`, {
+            method: 'PUT', credentials: 'same-origin', body,
+          });
+          const result = await response.json();
+          if (!response.ok) throw new Error(result.error || 'No pudimos guardar el archivo.');
+          feedback.textContent = 'Archivo guardado.';
+          await renderWorkAttachments(quote, area);
+        } catch (error) { feedback.textContent = error.message || 'No pudimos conectar.'; }
+        finally { submit.disabled = false; }
+      });
+      area.append(form);
+    }
   }
 
   function renderList() {
