@@ -1,6 +1,7 @@
 const express = require('express');
 const { createSimulationRouter } = require('./superadmin/simulation-routes');
 const { createWorkflowRouter } = require('./quotes/workflow-routes');
+const { createQuoteAttachmentRouter } = require('./quotes/attachment-routes');
 const path = require('node:path');
 const crypto = require('node:crypto');
 const bcrypt = require('bcryptjs');
@@ -67,6 +68,9 @@ function createApp(options = {}) {
       quoteService: options.quoteService,
       authService,
     }));
+  }
+  if (options.attachmentService) {
+    app.use('/api/quotes', createQuoteAttachmentRouter({ attachmentService: options.attachmentService, authService }));
   }
   if (options.simulationService) {
     app.use('/api/superadmin', createSimulationRouter({ simulationService: options.simulationService }));

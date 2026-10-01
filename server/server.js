@@ -17,6 +17,7 @@ const { createCatalogRepository } = require('./catalog/catalog-repository');
 const { createCatalogService } = require('./catalog/catalog-service');
 const { createQuoteRepository } = require('./quotes/quote-repository');
 const { createQuoteService } = require('./quotes/quote-service');
+const { createQuoteAttachmentService } = require('./quotes/attachment-service');
 const { bootstrapUsers: defaultBootstrapUsers } = require('./users/bootstrap-users');
 
 function parsePort(value) {
@@ -87,6 +88,8 @@ function createRuntime(options = {}) {
   if (simulationService) authService.getSessionContext = simulationService.getContext;
   const workflowService = database && quoteRepository
     ? createWorkflowService({ database, quotes: quoteRepository, now: options.now }) : null;
+  const attachmentService = database && quoteRepository
+    ? createQuoteAttachmentService({ database, quotes: quoteRepository, now: options.now }) : null;
 
   let resolveReady;
   let rejectReady;
@@ -106,6 +109,7 @@ function createRuntime(options = {}) {
     quoteService,
     simulationService,
     workflowService,
+    attachmentService,
     cookieSecure: options.cookieSecure ?? env.NODE_ENV === 'production',
   });
   const bootstrap = options.bootstrapUsers || defaultBootstrapUsers;
@@ -132,6 +136,7 @@ function createRuntime(options = {}) {
     quoteService,
     simulationService,
     workflowService,
+    attachmentService,
   };
 }
 
