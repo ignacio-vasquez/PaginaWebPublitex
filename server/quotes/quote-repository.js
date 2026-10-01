@@ -19,6 +19,11 @@ function createQuoteRepository({ database, now = Date.now }) {
     FROM quotes JOIN quote_numbers ON quote_numbers.quote_id = quotes.id
     WHERE quotes.id = ? AND user_id = ?
   `);
+  const findQuoteAny = database.prepare(`
+    SELECT quotes.*, quote_numbers.number AS quote_number
+    FROM quotes JOIN quote_numbers ON quote_numbers.quote_id = quotes.id
+    WHERE quotes.id = ?
+  `);
   const findEditable = database.prepare(`SELECT status FROM quotes WHERE id = ? AND user_id = ?`);
   const listItems = database.prepare(`
     SELECT * FROM quote_items WHERE quote_id = ? ORDER BY sort_order, id
@@ -30,6 +35,13 @@ function createQuoteRepository({ database, now = Date.now }) {
   const updateDetails = database.prepare(`
     UPDATE quotes SET phone = ?, company = ?, updated_at = ?
     WHERE id = ? AND user_id = ? AND status = 'draft'
+  `);
+  const updateDraftWorkName = database.prepare(`
+    UPDATE quotes SET work_name = ?, updated_at = ?
+    WHERE id = ? AND user_id = ? AND status = 'draft'
+  `);
+  const updateTeamWorkName = database.prepare(`
+    UPDATE quotes SET work_name = ?, updated_at = ? WHERE id = ?
   `);
   const nextOrder = database.prepare(`
     SELECT COALESCE(MAX(sort_order), 0) + 1 AS next_order FROM quote_items WHERE quote_id = ?
@@ -138,6 +150,7 @@ function createQuoteRepository({ database, now = Date.now }) {
       code: `COT-${String(row.quote_number).padStart(6, '0')}`,
       phone: row.phone,
       company: row.company,
+      workName: row.work_name || '',
       estimatedTotal: row.estimated_total,
       hasEvaluation: Boolean(row.has_evaluation),
       createdAt: row.created_at,
@@ -187,6 +200,17 @@ function createQuoteRepository({ database, now = Date.now }) {
       if (!ensureEditable(id, userId)) return null;
       updateDetails.run(phone, company, now(), id, userId);
       return mapQuote(findQuote.get(id, userId));
+    },
+
+    async saveWorkName({ id, userId, workName }) {
+      if (!ensureEditable(id, userId)) return null;
+      updateDraftWorkName.run(workName, now(), id, userId);
+      return mapQuote(findQuote.get(id, userId));
+    },
+
+    async saveWorkNameForTeam({ id, workName }) {
+      if (!updateTeamWorkName.run(workName, now(), id).changes) return null;
+      return mapQuote(findQuoteAny.get(id));
     },
 
     async addItem({ quoteId, userId, item }) {

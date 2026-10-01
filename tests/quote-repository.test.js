@@ -69,6 +69,7 @@ test('crea, lista y recupera un borrador como objetos planos después de reabrir
     const quotes = fixture.makeRepository();
     assert.deepEqual(await quotes.createDraft({ id: 'quote-1', userId: 'user-1' }), {
       id: 'quote-1', code: 'COT-000001', status: 'draft', phone: null, company: null,
+      workName: '',
       invoiceNumber: null, invoicedAt: null, paymentDueAt: null,
       events: [{ actorId: 'user-1', effectiveRole: 'cliente', status: 'draft', createdAt: 1000 }],
       estimatedTotal: 0, hasEvaluation: false,
@@ -184,6 +185,19 @@ test('elimina solo borradores del propietario y conserva el historial de otros u
     assert.deepEqual(await quotes.deleteDraft({ id: 'quote-1', userId: 'user-1' }), { deleted: true });
     assert.equal(await quotes.findOwned('quote-1', 'user-1'), null);
     assert.ok(await quotes.findOwned('quote-2', 'user-2'));
+  });
+});
+
+test('guarda el nombre del trabajo en el borrador del propietario y permite su edición por el equipo', async () => {
+  await withRepository(async ({ makeRepository }) => {
+    const quotes = makeRepository();
+    await quotes.createDraft({ id: 'quote-1', userId: 'user-1' });
+    const named = await quotes.saveWorkName({ id: 'quote-1', userId: 'user-1', workName: 'Trabajo Quijote' });
+    assert.equal(named.workName, 'Trabajo Quijote');
+    assert.equal(await quotes.saveWorkName({ id: 'quote-1', userId: 'user-2', workName: 'Ajeno' }), null);
+    await quotes.submit({ id: 'quote-1', userId: 'user-1' });
+    await assert.rejects(() => quotes.saveWorkName({ id: 'quote-1', userId: 'user-1', workName: 'Tarde' }), { code: 'QUOTE_NOT_EDITABLE' });
+    assert.equal((await quotes.saveWorkNameForTeam({ id: 'quote-1', workName: 'Trabajo final' })).workName, 'Trabajo final');
   });
 });
 
