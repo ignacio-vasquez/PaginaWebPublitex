@@ -6,6 +6,7 @@
 - El worktree de implementación se conserva en `/home/ignacio/Pagina app/.worktrees/quote-names-attachments`.
 - Verificación después del merge: `npm test` terminó con 237 pruebas aprobadas y 0 fallidas.
 - La página está corriendo en `http://localhost:8081` con la base persistente `data/publitex.sqlite`.
+- Para probar adjuntos sin tocar esos datos, hay una copia aislada en `http://127.0.0.1:8082`, respaldada en `/tmp/publitex-attachment-qa/publitex-20261001-022510.sqlite`; las cargas allí solo modifican esa copia.
 - Antes de iniciar contra esa base se comprobó en modo de solo lectura que tenía una cuenta superadmin activa y se creó el respaldo `/tmp/publitex-pre-main-db/publitex-20261001-021431.sqlite`.
 - El inicio aplicó las migraciones aditivas 011 y 012; después se confirmó que sigue habiendo un superadmin activo.
 - La base temporal de vista previa está en `/tmp/publitex-preview-20260930.sqlite`. Se encontró allí la cuenta nueva, con rol `cliente` y el mismo correo que el superadmin persistente. No se copiaron cuentas ni contraseñas entre bases; la cuenta nueva no aparece en la base persistente.
