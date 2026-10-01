@@ -62,3 +62,20 @@ test('clasifica y busca por fecha del documento aunque la carga ocurra en otro a
   assert.equal(doc.querySelector('a[download]').getAttribute('href'), '/api/work/quotes/q/invoice');
   assert.match(doc.querySelector('[data-invoice-list]').textContent, /Total facturado/);
 });
+
+test('archive shows and searches work name alongside the permanent code', async () => {
+  const { initInvoiceArchive } = await import('../js/facturas.js');
+  const doc = createDom(readFileSync('facturas.html', 'utf8')).window.document;
+  const record = { id: 'named', code: 'COT-000091', workName: 'Letrero Medialuna', invoiceNumber: '91',
+    status: 'delivered', invoicedAt: Date.UTC(2026, 8, 1), createdAt: Date.UTC(2026, 8, 1),
+    invoice: { issueDate: '2026-09-01', total: 1000, filename: 'oficial.pdf' }, items: [], events: [] };
+  initInvoiceArchive(doc, async (url) => new Response(JSON.stringify(url === '/api/auth/session'
+    ? { authenticated: true, user: { role: 'jefe' } } : [record])));
+  await tick();
+  assert.match(doc.querySelector('[data-invoice-card] summary').textContent, /Letrero Medialuna.*COT-000091/);
+  const search = doc.querySelector('[data-invoice-search]');
+  search.value = 'medialúna';
+  search.dispatchEvent(new doc.defaultView.Event('input'));
+  assert.equal(doc.querySelectorAll('[data-invoice-card]').length, 1);
+  assert.match(doc.querySelector('[data-invoice-card]').textContent, /Letrero Medialuna/);
+});

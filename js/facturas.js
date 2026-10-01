@@ -20,7 +20,7 @@ function dateTerms(timestamp) {
 
 function matches(quote, query) {
   if (!query) return true;
-  const fields = [quote.code, quote.invoiceNumber, quote.clientName, quote.clientEmail,
+  const fields = [quote.code, quote.workName, quote.invoiceNumber, quote.clientName, quote.clientEmail,
     quote.company, quote.phone, dateTerms(invoiceDate(quote)), quote.invoice?.receiverName,
     quote.invoice?.receiverRut, quote.invoice?.issuerRut,
     dateTerms(quote.events?.find(event => event.status === 'ready')?.createdAt),
@@ -52,7 +52,7 @@ export function initInvoiceArchive(documentRoot = document, api = globalThis.fet
   function card(quote) {
     const details = node('details');
     details.dataset.invoiceCard = '';
-    const summary = node('summary', `${quote.invoiceNumber || 'Factura sin número'} · ${quote.code} · ${new Date(invoiceDate(quote)).toLocaleDateString('es-CL')}`);
+    const summary = node('summary', `${quote.invoiceNumber || 'Factura sin número'} · ${quote.workName?.trim() || quote.code} · ${quote.code} · ${new Date(invoiceDate(quote)).toLocaleDateString('es-CL')}`);
     details.append(summary);
     details.append(node('p', `Cliente: ${quote.clientName || 'Sin nombre'} · ${quote.clientEmail || 'Sin correo'}`));
     details.append(node('p', `Contacto: ${[quote.company, quote.phone].filter(Boolean).join(' · ') || 'Sin datos adicionales'}`));

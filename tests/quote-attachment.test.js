@@ -100,7 +100,7 @@ test('customer attachment access is limited to owned quotes', async () => fixtur
   assert.ok(await quotes.findOwned('quote-1', 'owner'));
 }));
 
-test('backup invoice is separate from official invoice state', async () => fixture(async ({ database, service }) => {
+test('backup invoice attachment does not change official invoice archive', async () => fixture(async ({ database, service }) => {
   await service.upload('quote-1', 'invoice_backup', { user: { id: 'boss', role: 'jefe' } }, files.invoice_backup);
   assert.equal(database.prepare('SELECT COUNT(*) AS total FROM quote_invoices').get().total, 0);
   assert.equal(database.prepare('SELECT status FROM quotes WHERE id=?').get('quote-1').status, 'submitted');
