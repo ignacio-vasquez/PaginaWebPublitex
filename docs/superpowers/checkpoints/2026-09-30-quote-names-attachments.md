@@ -27,3 +27,14 @@
 4. Detalles menores diferidos: los nombres de archivos muy largos pueden perder la extensión y el mensaje de carga exitosa desaparece al actualizar la lista. No se ha hecho una prueba de restauración de respaldos de producción.
 
 El historial detallado de la implementación y revisión está en `.superpowers/sdd/2026-09-28-quote-names-and-attachments/progress.md` dentro del worktree.
+
+## Próxima sesión
+
+Cuando Ignacio diga “sigamos con lo último”, empezar explicando cómo puede actualizar por sí mismo el inicio del sitio, sin modificarlo todavía:
+
+- Reunir nombres y descripciones reales de los servicios, información de la empresa y datos de contacto.
+- Reemplazar las imágenes provisionales del portafolio por fotos reales; explicar dónde ponerlas en `assets/` y cómo cambiar sus referencias y textos alternativos en `index.html`.
+- Ver los cambios recargando `http://localhost:8081`; sus textos e imágenes son archivos directos del proyecto.
+- Probar presupuestos y adjuntos de cotizaciones solo en `http://127.0.0.1:8082`, que usa la copia temporal `/tmp/publitex-attachment-qa/publitex-20261001-022510.sqlite`. No usar `localhost:8081` para cargas de prueba porque conecta a los datos persistentes.
+
+La preferencia expresada es que Ignacio haga la actualización de la portada con una guía sencilla y revise los cambios paso a paso.
