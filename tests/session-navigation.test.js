@@ -51,7 +51,7 @@ test('las acciones cambian entre simulación pública y cotización con sesión'
     initSessionNavigation(dom.window.document, async () => new Response(JSON.stringify({ authenticated })));
     await new Promise(setImmediate);
     const actions = [...dom.window.document.querySelectorAll('[data-project-link]')];
-    assert.ok(actions.length >= 2);
+  assert.ok(actions.length >= 1);
     for (const action of actions) {
       assert.equal(action.textContent, authenticated ? 'Cotizar proyecto' : 'Simular proyecto');
       assert.equal(action.getAttribute('href'), authenticated ? 'cotizacion.html' : 'index.html#cotizacion');

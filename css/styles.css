@@ -1361,6 +1361,15 @@ body > header p a {
   color: var(--color-ink);
 }
 
+#contacto { background: var(--color-surface-soft); }
+#contacto > p:first-child { color: var(--color-accent-text); font-size: .78rem; font-weight: 850; letter-spacing: .14em; text-transform: uppercase; }
+#contacto .contact-intro { max-width: 42rem; color: var(--color-muted); font-size: 1.08rem; }
+.contact-details { display: grid; grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr)); gap: .8rem; margin: 2rem 0; }
+.contact-details > * { display: grid; gap: .2rem; min-height: 6rem; margin: 0; padding: 1rem; border-left: .25rem solid var(--color-accent); background: #fff; color: var(--color-ink); text-decoration: none; }
+.contact-details span { color: var(--color-muted); overflow-wrap: anywhere; }
+.contact-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 1rem; }
+.contact-actions > a:not(.contact-cta) { font-weight: 750; }
+
 body > footer a:hover {
   color: #fff;
   text-decoration-thickness: 0.2em;
