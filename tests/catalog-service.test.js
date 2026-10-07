@@ -8,13 +8,36 @@ function createService(database) {
   return createCatalogService({ catalog: createCatalogRepository({ database }) });
 }
 
-test('publica el catálogo activo bajo la clave products', async () => {
+test('publica las 37 ofertas comerciales agrupadas y corrige letrero de una faz', async () => {
+  await withTestDatabase(async ({ database }) => {
+    const result = await createService(database).getCatalog();
+    assert.deepEqual(result.categories.map((category) => category.label), [
+      'Impresiones', 'Pintura de fachada', 'Bastidores', 'Letreros luminosos',
+      'Toldos', 'Vinilo para ventanas', 'Otros',
+    ]);
+    const offerings = result.categories.flatMap((category) => category.offerings);
+    assert.equal(offerings.length, 37);
+    assert.deepEqual(offerings.find((offering) => offering.label === 'Letrero 1 faz'), {
+      id: 'letrero-1-faz', label: 'Letrero 1 faz', unit: 'M2', unitPrice: 135000,
+    });
+  });
+});
+
+test('calcula ofertas comerciales por M2, ML y UN sin confiar en el precio cliente', async () => {
+  await withTestDatabase(async ({ database }) => {
+    const service = createService(database);
+    assert.equal((await service.estimate({ offeringId: 'tela-pvc-impresa', quantity: 2.5, unitPrice: 1 })).estimatedTotal, 26250);
+    assert.equal((await service.estimate({ offeringId: 'cenefa-personalizada', quantity: 3, unitPrice: 1 })).estimatedTotal, 14700);
+    assert.equal((await service.estimate({ offeringId: 'pendon-rollers', quantity: 2, unitPrice: 1 })).estimatedTotal, 96000);
+    await assert.rejects(service.estimate({ offeringId: 'pendon-rollers', quantity: 1.5 }), { code: 'INVALID_CATALOG_SELECTION' });
+  });
+});
+
+test('publica el catálogo comercial bajo la clave categories', async () => {
   await withTestDatabase(async ({ database }) => {
     const result = await createService(database).getCatalog();
 
-    assert.deepEqual(result.products.map((product) => product.id), [
-      'sign-rect', 'sticker-print', 'banner', 'vehicle-wrap',
-    ]);
+    assert.equal(result.categories.length, 7);
   });
 });
 

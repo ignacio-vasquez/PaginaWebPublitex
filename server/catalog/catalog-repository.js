@@ -16,6 +16,9 @@ function normalizedExtraIds(extraIds) {
 }
 
 function createCatalogRepository({ database }) {
+  const activeCategories = database.prepare('SELECT id, label FROM catalog_categories WHERE active=1 ORDER BY sort_order');
+  const activeOfferings = database.prepare('SELECT id, category_id, label, unit, unit_price FROM catalog_offerings WHERE active=1 ORDER BY category_id, sort_order');
+  const offeringById = database.prepare(`SELECT offering.id, offering.category_id, category.label AS category_label, offering.label, offering.unit, offering.unit_price FROM catalog_offerings offering JOIN catalog_categories category ON category.id=offering.category_id WHERE offering.id=? AND offering.active=1 AND category.active=1`);
   const products = database.prepare(`
     SELECT id, label, calculation_type
     FROM catalog_products
@@ -141,6 +144,16 @@ function createCatalogRepository({ database }) {
   `);
 
   return {
+    async listActiveOfferings() {
+      const categories = activeCategories.all().map((row) => ({ id: row.id, label: row.label, offerings: [] }));
+      const byId = new Map(categories.map((category) => [category.id, category]));
+      for (const row of activeOfferings.all()) byId.get(row.category_id)?.offerings.push({ id: row.id, label: row.label, unit: row.unit, unitPrice: row.unit_price });
+      return { categories };
+    },
+    async findOffering(id) {
+      const row = offeringById.get(id);
+      return row && { id: row.id, categoryId: row.category_id, categoryLabel: row.category_label, label: row.label, unit: row.unit, unitPrice: row.unit_price };
+    },
     async listActive() {
       const result = products.all().map(toCatalogProduct);
       const byId = new Map(result.map((product) => [product.id, product]));

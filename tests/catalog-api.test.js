@@ -37,9 +37,8 @@ test('expone el catálogo activo sin exigir una sesión', async () => {
 
     assert.equal(response.status, 200);
     const body = await response.json();
-    assert.deepEqual(body.products.map((product) => product.id), [
-      'sign-rect', 'sticker-print', 'banner', 'vehicle-wrap',
-    ]);
+    assert.equal(body.categories.length, 7);
+    assert.equal(body.categories.flatMap((category) => category.offerings).length, 37);
     assert.ok(runtime.catalogRepository);
     assert.ok(runtime.catalogService);
   });
@@ -52,18 +51,14 @@ test('calcula la estimación pública sin escribir en SQLite e ignora un precio 
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({
-        productId: 'sign-rect',
-        materialId: 'acrylic',
-        sizeId: '100x50',
-        quantityId: 'sign-rect-qty-2',
-        extraIds: ['lighting', 'installation'],
+        offeringId: 'letrero-1-faz', quantity: 2,
         estimatedTotal: 1,
       }),
     });
 
     assert.equal(response.status, 200);
     const body = await response.json();
-    assert.equal(body.estimatedTotal, 64000);
+    assert.equal(body.estimatedTotal, 270000);
     assert.equal(body.selection.estimatedTotal, undefined);
     assert.equal(runtime.database.prepare('SELECT total_changes() AS count').get().count, changesBefore);
   });

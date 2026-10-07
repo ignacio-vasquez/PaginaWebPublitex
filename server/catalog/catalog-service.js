@@ -9,6 +9,13 @@ function hasValidBasePrice(basePrice) {
 }
 
 function createCatalogService({ catalog }) {
+  async function offeringEstimate(selection) {
+    if (!selection || typeof selection.offeringId !== 'string') throw invalidCatalogSelection();
+    const offering = await catalog.findOffering(selection.offeringId);
+    const quantity = typeof selection.quantity === 'string' ? Number(selection.quantity.replace(',', '.')) : selection.quantity;
+    if (!offering || !Number.isFinite(quantity) || quantity <= 0 || (offering.unit === 'UN' && !Number.isInteger(quantity))) throw invalidCatalogSelection();
+    return { offering, quantity, estimatedTotal: offering.unitPrice * quantity };
+  }
   async function resolveSelection(selection) {
     if (!selection || typeof selection !== 'object') throw invalidCatalogSelection();
     const configuration = await catalog.findConfiguration({
@@ -37,10 +44,14 @@ function createCatalogService({ catalog }) {
 
   return {
     async getCatalog() {
-      return { products: await catalog.listActive() };
+      return catalog.listActiveOfferings();
     },
 
     async estimate(selection) {
+      if (selection?.offeringId) {
+        const { offering, quantity, estimatedTotal } = await offeringEstimate(selection);
+        return { selection: { offeringId: offering.id, quantity }, summary: { product: offering.label, category: offering.categoryLabel, unit: offering.unit, unitPrice: offering.unitPrice }, estimatedTotal, requiresEvaluation: false };
+      }
       const { configuration, requiresEvaluation } = await resolveSelection(selection);
 
       const normalizedSelection = {
