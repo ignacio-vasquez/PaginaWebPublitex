@@ -17,7 +17,7 @@ test('configura SQLite y aplica cada migración una sola vez', async () => {
     const reopened = openDatabase({ filename });
     assert.deepEqual(
       reopened.prepare('SELECT version FROM schema_migrations ORDER BY version').all().map((row) => ({ ...row })),
-      [{ version: '001_auth.sql' }, { version: '002_catalog_quotes.sql' }, { version: '003_quote_codes.sql' }, { version: '004_simulation.sql' }, { version: '005_quote_workflow.sql' }, { version: '006_invoicing.sql' }, { version: '007_shared_work.sql' }, { version: '008_simulation_real_identity.sql' }, { version: '009_actor_target.sql' }, { version: '010_invoice_documents.sql' }, { version: '011_quote_work_names_attachments.sql' }, { version: '012_user_role_events.sql' }, { version: '013_catalog_offerings.sql' }],
+      [{ version: '001_auth.sql' }, { version: '002_catalog_quotes.sql' }, { version: '003_quote_codes.sql' }, { version: '004_simulation.sql' }, { version: '005_quote_workflow.sql' }, { version: '006_invoicing.sql' }, { version: '007_shared_work.sql' }, { version: '008_simulation_real_identity.sql' }, { version: '009_actor_target.sql' }, { version: '010_invoice_documents.sql' }, { version: '011_quote_work_names_attachments.sql' }, { version: '012_user_role_events.sql' }, { version: '013_catalog_offerings.sql' }, { version: '014_quote_offering_snapshots.sql' }],
     );
     reopened.close();
   });
@@ -77,7 +77,7 @@ test('crea el catálogo versionado y rechaza ítems sin cotización', async () =
     assert.deepEqual(migrateDatabase({ database }), []);
     assert.deepEqual(
       database.prepare('SELECT id FROM catalog_products ORDER BY sort_order').all().map(({ id }) => id),
-      ['sign-rect', 'sticker-print', 'banner', 'vehicle-wrap'],
+      ['sign-rect', 'sticker-print', 'banner', 'vehicle-wrap', 'commercial-offering'],
     );
 
     const configuration = database.prepare(`
@@ -294,7 +294,7 @@ test('asigna códigos a cotizaciones existentes sin modificar sus datos al migra
     database.exec("INSERT INTO users (id, name, email, password_hash, role, created_at, updated_at) VALUES ('u', 'Ana', 'ana@example.com', 'hash', 'cliente', 0, 0)");
     database.exec("INSERT INTO quotes (id, user_id, status, phone, created_at, updated_at, submitted_at) VALUES ('old', 'u', 'submitted', '912345678', 1, 3, 3), ('new', 'u', 'draft', NULL, 2, 2, NULL)");
     const before = database.prepare('SELECT * FROM quotes ORDER BY id').all().map((row) => ({ ...row }));
-    assert.deepEqual(migrateDatabase({ database }), ['003_quote_codes.sql', '004_simulation.sql', '005_quote_workflow.sql', '006_invoicing.sql', '007_shared_work.sql', '008_simulation_real_identity.sql', '009_actor_target.sql', '010_invoice_documents.sql', '011_quote_work_names_attachments.sql', '012_user_role_events.sql', '013_catalog_offerings.sql']);
+    assert.deepEqual(migrateDatabase({ database }), ['003_quote_codes.sql', '004_simulation.sql', '005_quote_workflow.sql', '006_invoicing.sql', '007_shared_work.sql', '008_simulation_real_identity.sql', '009_actor_target.sql', '010_invoice_documents.sql', '011_quote_work_names_attachments.sql', '012_user_role_events.sql', '013_catalog_offerings.sql', '014_quote_offering_snapshots.sql']);
     const after = database.prepare('SELECT * FROM quotes ORDER BY id').all().map((row) => ({ ...row }));
     assert.deepEqual(after.map(({ work_name, ...row }) => row), before);
     assert.deepEqual(after.map((row) => row.work_name), ['', '']);
