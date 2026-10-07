@@ -8,6 +8,7 @@ import { initQuotePage } from './cotizaciones.js';
 import { initWorkPage } from './gestion.js';
 import { initSuperadminPanel } from './superadmin-panel.js';
 import { initInvoiceArchive } from './facturas.js';
+import { initQuotationAccess } from './cotizacion-acceso.js';
 
 export function initApp(documentRoot = document) {
   initMenu(documentRoot);
@@ -19,6 +20,7 @@ export function initApp(documentRoot = document) {
   initWorkPage(documentRoot);
   initSuperadminPanel(documentRoot);
   initInvoiceArchive(documentRoot);
+  initQuotationAccess(documentRoot);
   if (!documentRoot.querySelector('[data-auth-view], [data-work-page], [data-superadmin-page], [data-invoice-page]')) initSessionNavigation(documentRoot);
 }
 

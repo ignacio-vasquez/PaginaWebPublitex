@@ -1603,6 +1603,10 @@ legend {
   margin-inline: max(1rem, calc((100% - var(--content-width)) / 2));
 }
 
+/* El historial conserva el editor en el DOM para accesibilidad y compatibilidad,
+   pero la edición se realiza únicamente desde la página de presupuesto. */
+[data-quote-history] [data-quote-editor] { display: none; }
+
 .quote-history-entry[data-selected="true"] {
   background: #fff4e8;
 }

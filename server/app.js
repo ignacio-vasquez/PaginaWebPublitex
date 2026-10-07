@@ -30,7 +30,7 @@ function createApp(options = {}) {
   for (const directory of ['css', 'js', 'assets']) {
     app.use(`/${directory}`, express.static(path.join(publicRoot, directory), { index: false }));
   }
-  for (const page of ['index.html', 'acceso.html', 'cotizacion.html', 'cotizaciones.html', 'gestion.html', 'superadmin.html', 'facturas.html']) {
+  for (const page of ['index.html', 'acceso.html', 'cotizacion.html', 'cotizaciones.html', 'presupuesto.html', 'gestion.html', 'superadmin.html', 'facturas.html']) {
     app.get(`/${page}`, (_request, response) => response.sendFile(page, { root: publicRoot }));
   }
   app.get('/', (_request, response) => response.sendFile('index.html', { root: publicRoot }));

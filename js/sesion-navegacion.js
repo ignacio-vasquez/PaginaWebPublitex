@@ -8,8 +8,8 @@ export function renderSessionNavigation(documentRoot, authenticated, session = {
     link.textContent = authenticated ? 'Mi cuenta' : 'Ingresar';
   });
   documentRoot.querySelectorAll('[data-project-link]').forEach((link) => {
-    link.textContent = staff ? workspaceLabel : authenticated ? 'Cotizar proyecto' : 'Simular proyecto';
-    link.setAttribute('href', staff ? 'gestion.html' : authenticated ? 'cotizacion.html' : 'index.html#cotizacion');
+    link.textContent = staff ? workspaceLabel : authenticated ? 'Enviar presupuesto' : 'Simular proyecto';
+    link.setAttribute('href', staff ? 'gestion.html' : authenticated ? 'presupuesto.html?new=1' : 'index.html#cotizacion');
   });
   documentRoot.querySelectorAll('[data-account-view] a[href="cotizaciones.html"], [data-account-workspace]').forEach(link => {
     link.dataset.accountWorkspace = '';

@@ -53,8 +53,8 @@ test('las acciones cambian entre simulación pública y cotización con sesión'
     const actions = [...dom.window.document.querySelectorAll('[data-project-link]')];
   assert.ok(actions.length >= 1);
     for (const action of actions) {
-      assert.equal(action.textContent, authenticated ? 'Cotizar proyecto' : 'Simular proyecto');
-      assert.equal(action.getAttribute('href'), authenticated ? 'cotizacion.html' : 'index.html#cotizacion');
+      assert.equal(action.textContent, authenticated ? 'Enviar presupuesto' : 'Simular proyecto');
+      assert.equal(action.getAttribute('href'), authenticated ? 'presupuesto.html?new=1' : 'index.html#cotizacion');
     }
     assert.equal(dom.window.document.querySelector('[data-quote-project]').hidden, !authenticated);
   }

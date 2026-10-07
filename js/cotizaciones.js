@@ -17,6 +17,11 @@ export function initQuotePage(
 ) {
   const page = documentRoot.querySelector('[data-quote-page]');
   if (!page || typeof api !== 'function') return { ready: Promise.resolve() };
+  const historyPage = page.hasAttribute('data-quote-history');
+  const budgetPage = page.hasAttribute('data-budget-page');
+  const query = new URLSearchParams(globalThis.location?.search || '');
+  const quoteId = query.get('id');
+  const newBudget = budgetPage && query.get('new') === '1';
   const list = page.querySelector('[data-quote-list]');
   const editor = page.querySelector('[data-quote-editor]');
   const tracking = page.querySelector('[data-quote-tracking]');
@@ -105,6 +110,10 @@ export function initQuotePage(
       const count = documentRoot.createElement('p');
       count.textContent = `${quote.items.length} producto${quote.items.length === 1 ? '' : 's'}`;
       const selectQuote = (showTracking) => {
+        if (historyPage) {
+          navigate(`presupuesto.html?id=${encodeURIComponent(quote.id)}${showTracking ? '#estado' : ''}`);
+          return;
+        }
         const next = quotes.find((candidate) => candidate.id === quote.id);
         if (!next) return;
         const changed = current?.id !== next.id;
@@ -318,9 +327,13 @@ export function initQuotePage(
     if (lastSave) saveDetails();
   });
 
-  page.querySelector('[data-create-quote]').addEventListener('click', async (event) => {
+  page.querySelector('[data-create-quote]')?.addEventListener('click', async (event) => {
     event.currentTarget.disabled = true;
-    try { replaceCurrent(await request('/api/quotes', { method: 'POST' })); }
+    try {
+      const created = await request('/api/quotes', { method: 'POST' });
+      if (historyPage) navigate(`presupuesto.html?id=${encodeURIComponent(created.id)}`);
+      else replaceCurrent(created);
+    }
     catch (error) { pageStatus.textContent = error.message; }
     finally { event.currentTarget.disabled = false; }
   });
@@ -389,6 +402,11 @@ export function initQuotePage(
         return;
       }
       quotes = await request('/api/quotes');
+      if (newBudget) {
+        const created = await request('/api/quotes', { method: 'POST' });
+        navigate(`presupuesto.html?id=${encodeURIComponent(created.id)}`);
+        return;
+      }
       let handoff = null;
       try {
         const stored = storage?.getItem(HANDOFF_KEY);
@@ -408,7 +426,12 @@ export function initQuotePage(
           pageStatus.textContent = `${error.message} Vuelve a Cotización para revisar la selección.`;
         }
       }
-      current = quotes.find((quote) => quote.status === 'draft') || quotes[0] || null;
+      current = quoteId ? quotes.find((quote) => quote.id === quoteId) : quotes.find((quote) => quote.status === 'draft') || quotes[0] || null;
+      if (budgetPage && !current) {
+        pageStatus.textContent = 'No encontramos esta cotización. Vuelve a tu historial para elegir otra.';
+        return;
+      }
+      if (budgetPage && current) page.querySelector('[data-add-item]').href = `cotizacion.html?quoteId=${encodeURIComponent(current.id)}`;
       renderList();
       renderEditor();
     } catch (error) {

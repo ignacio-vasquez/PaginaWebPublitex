@@ -297,33 +297,23 @@ test('envía un teléfono local válido después de completar el autoguardado pe
 });
 
 
-test('un error de guardado en otro borrador no bloquea una cotización válida', async () => {
+test('el historial abre cada borrador en su página dedicada', async () => {
   const other = { ...draft, id: 'quote-2', phone: '912345678' };
-  let submittedId;
-  const { dom } = await init({ api: async (url, options = {}) => {
+  const { dom, navigations } = await init({ api: async (url, options = {}) => {
     if (url === '/api/auth/session') return json({ authenticated: true });
     if (url === '/api/quotes') return json([draft, other]);
-    if (options.method === 'PATCH') return json({ error: 'El teléfono no es válido.' }, 400);
-    if (url.endsWith('/submit')) { submittedId = url; return json({ ...other, status: 'submitted' }); }
     throw new Error(url);
   } });
   const doc = dom.window.document;
-  const phone = doc.querySelector('[data-quote-phone]');
-  phone.value = 'incorrecto';
-  phone.dispatchEvent(new dom.window.Event('change', { bubbles: true }));
-  await new Promise(setImmediate);
   doc.querySelector('[data-quote-id="quote-2"] [data-select-quote]').click();
-  doc.querySelector('[data-submit-quote]').click();
-  doc.querySelector('[data-confirm-submit]').click();
-  await new Promise(setImmediate);
-  assert.equal(submittedId, '/api/quotes/quote-2/submit');
+  assert.deepEqual(navigations, ['presupuesto.html?id=quote-2']);
 });
 
 
 test('el historial ofrece eliminar para borradores y Ver estado solo para enviadas', async () => {
   const sent = { ...draft, id: 'quote-2', code: 'COT-000002', status: 'submitted', createdAt: 2000, submittedAt: 3000 };
   const first = { ...draft, code: 'COT-000001', createdAt: 1000 };
-  const { dom } = await init({ api: async (url) => {
+  const { dom, navigations } = await init({ api: async (url) => {
     if (url === '/api/auth/session') return json({ authenticated: true });
     if (url === '/api/quotes') return json([first, sent]);
     throw new Error(url);
@@ -334,15 +324,7 @@ test('el historial ofrece eliminar para borradores y Ver estado solo para enviad
   assert.match(entries[0].textContent, /Enviada/);
   assert.equal(entries[0].querySelector('time').dateTime, '1970-01-01T00:00:02.000Z');
   entries[0].querySelector('[data-view-quote-status]').click();
-  const tracking = doc.querySelector('[data-quote-tracking]');
-  assert.equal(tracking.hidden, false);
-  assert.match(doc.querySelector('#quote-editor-title').textContent, /COT-000002/);
-  assert.equal(tracking.querySelector('[aria-current="step"] [data-step-label]').textContent, 'Enviada');
-  const steps = [...tracking.querySelectorAll('[data-step-label]')].map((step) => step.textContent);
-  assert.deepEqual(steps, ['Borrador', 'Enviada', 'En revisión', 'Aceptada', 'Facturada', 'Lista', 'Entregada']);
-  assert.equal(tracking.querySelectorAll('[data-step-state="pending"]').length, 5);
-  assert.equal(doc.activeElement.id, 'quote-tracking-title');
-  assert.equal(doc.querySelectorAll('[data-select-quote][aria-current="true"]').length, 1);
+  assert.deepEqual(navigations, ['presupuesto.html?id=quote-2#estado']);
   const draftEntry = doc.querySelector('[data-quote-id="quote-1"]');
   assert.equal(draftEntry.querySelector('[data-delete-draft]').textContent, 'Eliminar borrador');
   assert.equal(draftEntry.querySelector('[data-view-quote-status]'), null);
