@@ -34,6 +34,21 @@ const signSelection = {
   extraIds: ['lighting', 'installation'],
 };
 
+test('guarda una oferta con cantidad decimal como instantánea sin alterar ítems heredados', async () => {
+  await withTestDatabase(async ({ database }) => {
+    insertUser(database);
+    const service = createService(database);
+    const draft = await service.createDraft('user-1');
+    await service.addItem(draft.id, 'user-1', signSelection);
+    const saved = await service.addItem(draft.id, 'user-1', {
+      offeringId: 'tela-pvc-impresa', quantity: 2.5, observation: ' Fachada ', unitPrice: 1,
+    });
+    assert.equal(saved.items.length, 2);
+    assert.deepEqual(Object.fromEntries(['id','offeringId','categoryLabel','unit','unitPrice','quantityValue','productLabel','observation','estimatedSubtotal','requiresEvaluation','isOffering'].map((key) => [key, saved.items[1][key]])), { id: 'item-2', offeringId: 'tela-pvc-impresa', categoryLabel: 'Impresiones', unit: 'M2', unitPrice: 10500, quantityValue: 2.5, productLabel: 'Tela PVC impresa (tinta UV), solo impresión', observation: 'Fachada', estimatedSubtotal: 26250, requiresEvaluation: false, isOffering: true });
+    await assert.rejects(service.addItem(draft.id, 'user-1', { offeringId: 'pendon-rollers', quantity: 1.5 }), { code: 'INVALID_CATALOG_SELECTION' });
+  });
+});
+
 test('crea un borrador, normaliza detalles y persiste un snapshot calculado por el servidor', async () => {
   await withTestDatabase(async ({ database }) => {
     insertUser(database);

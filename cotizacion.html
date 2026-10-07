@@ -24,11 +24,9 @@
         <h1 id="titulo-cotizacion">Cotización</h1>
         <p>Elige los detalles de tu proyecto. Al guardar el producto podrás completar tus datos y enviar la cotización desde Mis cotizaciones.</p>
         <div data-simulator data-quotation hidden role="form" aria-labelledby="titulo-cotizacion">
-          <p><label for="simulator-product">Producto</label><select id="simulator-product" data-simulator-product><option value="">Cargando productos…</option></select></p>
-          <p><label for="simulator-material">Material</label><select id="simulator-material" data-simulator-material disabled></select></p>
-          <p><label for="simulator-size">Medida o cobertura</label><select id="simulator-size" data-simulator-size disabled></select></p>
-          <p><label for="simulator-quantity">Cantidad</label><select id="simulator-quantity" data-simulator-quantity disabled></select></p>
-          <fieldset data-simulator-extras disabled><legend>Extras disponibles</legend><div data-extra-options></div></fieldset>
+          <p><label for="simulator-category">Categoría</label><select id="simulator-category" data-simulator-category><option value="">Cargando servicios…</option></select></p>
+          <p><label for="simulator-product">Servicio</label><select id="simulator-product" data-simulator-product disabled></select></p>
+          <p><label for="simulator-quantity">Cantidad</label><input id="simulator-quantity" data-simulator-quantity type="number" min="0.01" step="0.01" disabled><small data-simulator-price></small></p>
           <p><label for="simulator-observation">Observación opcional</label><textarea id="simulator-observation" data-simulator-observation rows="4"></textarea></p>
           <button type="button" data-simulator-estimate>Calcular estimación</button>
           <div class="form-status" data-simulator-status role="status" aria-live="polite"></div>

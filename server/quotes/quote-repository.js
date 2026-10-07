@@ -50,8 +50,8 @@ function createQuoteRepository({ database, now = Date.now }) {
     INSERT INTO quote_items (
       id, quote_id, catalog_price_id, product_id, material_id, size_id, quantity_id,
       product_label, material_label, size_label, quantity_label, quantity_value,
-      observation, estimated_subtotal, requires_evaluation, sort_order, created_at, updated_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      observation, estimated_subtotal, requires_evaluation, sort_order, created_at, updated_at, offering_id, category_label, unit, unit_price
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `);
   const findOwnedItem = database.prepare(`
     SELECT item.sort_order, item.created_at
@@ -121,6 +121,7 @@ function createQuoteRepository({ database, now = Date.now }) {
       sizeLabel: row.size_label,
       quantityLabel: row.quantity_label,
       quantityValue: row.quantity_value,
+      ...(row.offering_id ? { offeringId: row.offering_id, categoryLabel: row.category_label, unit: row.unit, unitPrice: row.unit_price, isOffering: true } : {}),
       observation: row.observation,
       estimatedSubtotal: row.estimated_subtotal,
       requiresEvaluation: Boolean(row.requires_evaluation),
@@ -222,7 +223,7 @@ function createQuoteRepository({ database, now = Date.now }) {
           item.sizeId, item.quantityId, item.productLabel, item.materialLabel,
           item.sizeLabel, item.quantityLabel, item.quantityValue, item.observation,
           item.estimatedSubtotal, item.requiresEvaluation ? 1 : 0,
-          nextOrder.get(quoteId).next_order, timestamp, timestamp,
+          nextOrder.get(quoteId).next_order, timestamp, timestamp, item.offeringId || null, item.categoryLabel || null, item.unit || null, item.unitPrice ?? null,
         );
         writeExtras(item);
         recompute(quoteId, userId, timestamp);

@@ -42,6 +42,13 @@ img {
   height: auto;
 }
 
+.service-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(15rem,1fr)); gap:1.25rem; margin-top:2rem; }
+.service-grid article { overflow:hidden; border:1px solid var(--color-border); background:var(--color-surface); box-shadow:var(--shadow-card); }
+.service-grid img { width:100%; aspect-ratio:16/9; object-fit:cover; background:var(--color-ink-soft); }
+.service-grid h3,.service-grid p,.service-grid a { margin-inline:1rem; }
+.service-grid h3 { margin-top:1rem; }
+.service-grid a { display:inline-block; margin-bottom:1rem; color:var(--color-accent-text); font-weight:800; }
+
 a {
   color: inherit;
   text-decoration-thickness: 0.12em;

@@ -42,21 +42,14 @@
       <section id="servicios" aria-labelledby="titulo-servicios">
         <p>Lo que hacemos</p>
         <h2 id="titulo-servicios">Soluciones para destacar tu marca</h2>
-        <article>
-          <img src="assets/trabajo-letrero.svg" alt="Imagen provisional de un letrero luminoso">
-          <h3>Letreros luminosos</h3>
-          <p>Diseño, fabricación e instalación de letreros visibles de día y de noche.</p>
-        </article>
-        <article>
-          <img src="assets/trabajo-camion.svg" alt="Imagen provisional de un camión comercial con rotulación adhesiva">
-          <h3>Rotulación vehicular</h3>
-          <p>Gráficas y adhesivos para camiones, vehículos comerciales y flotas.</p>
-        </article>
-        <article>
-          <img src="assets/trabajo-vitrina.svg" alt="Imagen provisional de una vitrina decorada con gráficas adhesivas">
-          <h3>Adhesivos y gráficas</h3>
-          <p>Soluciones para vitrinas, señalización, productos y superficies de distintos tamaños.</p>
-        </article>
+        <div class="service-grid">
+          <article><img src="assets/trabajo-vitrina.svg" alt="Espacio de referencia para trabajos de impresión y gráfica"><h3>Impresión y gráfica</h3><p>Telas PVC, adhesivos y cenefas para hacer visible tu marca.</p><a href="#cotizacion">Cotizar servicio</a></article>
+          <article><img src="assets/trabajo-letrero.svg" alt="Espacio de referencia para pintura de fachadas"><h3>Pintura de fachadas</h3><p>Pintura comercial, raspado, retiro de adhesivos y logotipos.</p><a href="#cotizacion">Cotizar servicio</a></article>
+          <article><img src="assets/trabajo-letrero.svg" alt="Espacio de referencia para bastidores"><h3>Bastidores</h3><p>Estructuras en fierro, tela PVC y gráfica adhesiva.</p><a href="#cotizacion">Cotizar servicio</a></article>
+          <article><img src="assets/trabajo-letrero.svg" alt="Espacio de referencia para letreros luminosos"><h3>Letreros luminosos</h3><p>Fabricación, mantención, cambio de tela y focos LED.</p><a href="#cotizacion">Cotizar servicio</a></article>
+          <article><img src="assets/trabajo-vitrina.svg" alt="Espacio de referencia para toldos"><h3>Toldos</h3><p>Estructuras, instalación y mantención para proteger tu local.</p><a href="#cotizacion">Cotizar servicio</a></article>
+          <article><img src="assets/trabajo-vitrina.svg" alt="Espacio de referencia para vinilos de ventanas"><h3>Vinilos para ventanas</h3><p>Windows Vision, empavonados y gráficas para vitrinas.</p><a href="#cotizacion">Cotizar servicio</a></article>
+        </div>
       </section>
 
       <section id="proceso" aria-labelledby="titulo-proceso">
@@ -112,11 +105,9 @@
         <h2 id="titulo-cotizacion">Simula tu proyecto</h2>
         <p>Prueba productos y opciones para obtener una estimación rápida. Esta simulación no se guarda.</p>
         <div data-simulator role="form" aria-labelledby="titulo-cotizacion">
-          <p><label for="simulator-product">Producto</label><select id="simulator-product" data-simulator-product><option value="">Cargando productos…</option></select></p>
-          <p><label for="simulator-material">Material</label><select id="simulator-material" data-simulator-material disabled></select></p>
-          <p><label for="simulator-size">Medida o cobertura</label><select id="simulator-size" data-simulator-size disabled></select></p>
-          <p><label for="simulator-quantity">Cantidad</label><select id="simulator-quantity" data-simulator-quantity disabled></select></p>
-          <fieldset data-simulator-extras disabled><legend>Extras disponibles</legend><div data-extra-options></div></fieldset>
+          <p><label for="simulator-category">Categoría</label><select id="simulator-category" data-simulator-category><option value="">Cargando servicios…</option></select></p>
+          <p><label for="simulator-product">Servicio</label><select id="simulator-product" data-simulator-product disabled></select></p>
+          <p><label for="simulator-quantity">Cantidad</label><input id="simulator-quantity" data-simulator-quantity type="number" min="0.01" step="0.01" disabled><small data-simulator-price></small></p>
           <p><label for="simulator-observation">Observación opcional</label><textarea id="simulator-observation" data-simulator-observation rows="4"></textarea></p>
           <button type="button" data-simulator-estimate>Calcular estimación</button>
           <div class="form-status" data-simulator-status role="status" aria-live="polite"></div>

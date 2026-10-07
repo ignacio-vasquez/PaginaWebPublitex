@@ -74,6 +74,10 @@ function createCatalogService({ catalog }) {
     },
 
     async prepareQuoteItem(selection) {
+      if (selection?.offeringId) {
+        const { offering, quantity, estimatedTotal } = await offeringEstimate(selection);
+        return { catalogPriceId: 'commercial-offering-price', productId: 'commercial-offering', materialId: 'commercial-offering-material', sizeId: 'commercial-offering-size', quantityId: 'commercial-offering-quantity', productLabel: offering.label, materialLabel: offering.categoryLabel, sizeLabel: offering.unit, quantityLabel: `${quantity} ${offering.unit}`, quantityValue: quantity, estimatedSubtotal: estimatedTotal, requiresEvaluation: false, extras: [], offeringId: offering.id, categoryLabel: offering.categoryLabel, unit: offering.unit, unitPrice: offering.unitPrice, isOffering: true };
+      }
       const { configuration, requiresEvaluation } = await resolveSelection(selection);
       return {
         catalogPriceId: configuration.catalogPriceId,
