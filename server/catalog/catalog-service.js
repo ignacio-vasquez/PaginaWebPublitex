@@ -44,7 +44,7 @@ function createCatalogService({ catalog }) {
 
   return {
     async getCatalog() {
-      return catalog.listActiveOfferings();
+      return { ...(await catalog.listActiveOfferings()), products: await catalog.listActive() };
     },
 
     async estimate(selection) {

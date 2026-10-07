@@ -23,6 +23,7 @@ function createCatalogRepository({ database }) {
     SELECT id, label, calculation_type
     FROM catalog_products
     WHERE active = 1
+      AND id != 'commercial-offering'
       AND EXISTS (
         SELECT 1
         FROM catalog_prices AS price

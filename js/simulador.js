@@ -1,7 +1,7 @@
 const HANDOFF_KEY='publitex_quote_handoff_v1'; const SELECTION_KEY='publitex_quote_selection_v1';
 const money=(n)=>new Intl.NumberFormat('es-CL',{style:'currency',currency:'CLP',maximumFractionDigits:0}).format(n);
 function options(select,items,text){select.replaceChildren(); const blank=select.ownerDocument.createElement('option'); blank.value=''; blank.textContent=text; select.append(blank);items.forEach(x=>{const option=select.ownerDocument.createElement('option');option.value=x.id;option.textContent=x.label;select.append(option)});select.disabled=!items.length;}
-export function initSimulator(documentRoot=document,api=fetch,storage=sessionStorage,navigate=(url)=>location.href=url){
+export function initSimulator(documentRoot=document,api=fetch,storage=globalThis.sessionStorage,navigate=(url)=>location.href=url){
  const root=documentRoot.querySelector('[data-simulator]'); if(!root)return {ready:Promise.resolve()};
  const category=root.querySelector('[data-simulator-category]'),product=root.querySelector('[data-simulator-product]'),quantity=root.querySelector('[data-simulator-quantity]'),price=root.querySelector('[data-simulator-price]'),status=root.querySelector('[data-simulator-status]'),estimate=root.querySelector('[data-simulator-estimate]'),result=root.querySelector('[data-simulator-result]'),summary=root.querySelector('[data-estimate-summary]'),total=root.querySelector('[data-estimate-total]'),quote=root.querySelector('[data-quote-project]'),observation=root.querySelector('[data-simulator-observation]'); let categories=[],selected;
  const show=(x)=>status.textContent=x;
