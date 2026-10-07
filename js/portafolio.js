@@ -5,6 +5,9 @@ export function initPortfolio(documentRoot = document) {
   const closeButton = dialog?.querySelector('[data-dialog-close]');
   const dialogImage = dialog?.querySelector('[data-dialog-image]');
   const dialogTitle = dialog?.querySelector('[data-dialog-title]');
+  const track = documentRoot.querySelector('[data-portfolio-track]');
+  const previous = documentRoot.querySelector('[data-portfolio-previous]');
+  const next = documentRoot.querySelector('[data-portfolio-next]');
   const focusableSelector = [
     'a[href]',
     'button:not([disabled])',
@@ -15,6 +18,14 @@ export function initPortfolio(documentRoot = document) {
   ].join(',');
   let backgroundState = [];
   let trigger;
+
+  const slide = (direction) => track?.scrollBy({ left: direction * Math.max(track.clientWidth * 0.78, 280), behavior: 'smooth' });
+  previous?.addEventListener('click', () => slide(-1));
+  next?.addEventListener('click', () => slide(1));
+  track?.addEventListener('keydown', (event) => {
+    if (event.key === 'ArrowLeft') { event.preventDefault(); slide(-1); }
+    if (event.key === 'ArrowRight') { event.preventDefault(); slide(1); }
+  });
 
   filters.forEach((filterButton) => {
     filterButton.addEventListener('click', () => {

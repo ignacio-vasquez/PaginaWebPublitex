@@ -1432,6 +1432,16 @@ body > footer a:hover {
   #servicios .service-grid article:nth-child(n) { grid-column: auto; }
 }
 
+#trabajos .portfolio-toolbar { grid-column: 1 / -1; display:flex; align-items:center; justify-content:flex-end; gap:.7rem; }
+#trabajos .portfolio-toolbar p { margin:0 auto 0 0; color:var(--color-muted); font-size:.9rem; }
+#trabajos .portfolio-toolbar button { width:2.6rem; height:2.6rem; border:1px solid var(--color-ink); background:#fff; color:var(--color-ink); font-size:1.25rem; cursor:pointer; }
+#trabajos .portfolio-track { grid-column:1 / -1; display:grid; grid-auto-flow:column; grid-auto-columns:minmax(17rem, 25rem); grid-template-columns:unset; gap:1rem; overflow-x:auto; scroll-snap-type:x mandatory; scrollbar-color:var(--color-accent) #e6e6e6; scrollbar-width:thin; padding:0 0 1rem; }
+#trabajos .portfolio-track figure { display:block; scroll-snap-align:start; }
+#trabajos .portfolio-track::-webkit-scrollbar { height:.65rem; }
+#trabajos .portfolio-track::-webkit-scrollbar-thumb { background:var(--color-accent); }
+#trabajos .portfolio-track::-webkit-scrollbar-track { background:#e6e6e6; }
+#trabajos .portfolio-track figure[hidden] { display:none; }
+
 /* Shared account, quotation and simulation screens. */
 .access-page,
 .quote-page,
