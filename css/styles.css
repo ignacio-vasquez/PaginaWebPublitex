@@ -130,6 +130,27 @@ body > header > a {
   font-weight: 650;
 }
 
+body > header > .header-whatsapp {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2.5rem;
+  padding: 0.55rem 1rem;
+  border: 1px solid var(--color-ink);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--color-ink);
+  font-weight: 750;
+  white-space: nowrap;
+}
+
+body > header > .header-whatsapp:hover,
+body > header > .header-whatsapp:focus-visible {
+  background: #e5e5e5;
+  border-color: #e5e5e5;
+  color: var(--color-ink);
+}
+
 .home-hero > p:last-child a:first-child,
 [data-simulator] button {
   display: inline-flex;
@@ -1347,17 +1368,17 @@ body > header p a {
   justify-content: center;
   min-height: 2.75rem;
   padding: 0.8rem 1.4rem;
-  border: 1px solid var(--color-ink);
-  border-radius: var(--radius-small);
-  background: var(--color-ink);
-  color: #fff;
+  border: 1px solid #fff;
+  border-radius: 999px;
+  background: #fff;
+  color: var(--color-ink);
   font-weight: 750;
   text-decoration: none;
 }
 
 #contacto .contact-cta:hover {
-  background: #fff;
-  border-color: #fff;
+  background: #e5e5e5;
+  border-color: #e5e5e5;
   color: var(--color-ink);
 }
 
@@ -1606,6 +1627,11 @@ legend {
 /* El historial conserva el editor en el DOM para accesibilidad y compatibilidad,
    pero la edición se realiza únicamente desde la página de presupuesto. */
 [data-quote-history] [data-quote-editor] { display: none; }
+
+[data-quote-history] [data-quote-workspace] { display: block; }
+[data-quote-history] .quote-overview { padding: clamp(1.25rem, 3vw, 2rem); border-top: 0.35rem solid var(--color-accent-dark); background: var(--color-surface); box-shadow: var(--shadow-card); }
+[data-quote-history] [data-quote-list] { display: flex; gap: 1rem; max-width: 100%; max-height: none; overflow-x: auto; overflow-y: hidden; padding: .25rem .25rem 1rem; scroll-snap-type: x proximity; scrollbar-color: var(--color-accent-dark) var(--color-surface-soft); scrollbar-width: auto; }
+[data-quote-history] .quote-history-entry { flex: 0 0 min(22rem, 85vw); min-height: 15rem; padding: 1.25rem; scroll-snap-align: start; }
 
 .quote-history-entry[data-selected="true"] {
   background: #fff4e8;

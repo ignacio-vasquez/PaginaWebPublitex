@@ -148,11 +148,11 @@ test('muestra el nombre junto al código y busca por nombre sin distinguir tilde
   const search = doc.querySelector('[data-quote-search]');
   search.value = 'medialúna';
   search.dispatchEvent(new dom.window.Event('input', { bubbles: true }));
-  assert.equal(doc.querySelectorAll('[data-quote-id]').length, 1);
-  assert.equal(doc.querySelector('[data-quote-id]').dataset.quoteId, 'quote-named');
+  assert.equal(doc.querySelectorAll('[data-quote-list] [data-quote-id]').length, 1);
+  assert.equal(doc.querySelector('[data-quote-list] [data-quote-id]').dataset.quoteId, 'quote-named');
   search.value = 'COT-000001';
   search.dispatchEvent(new dom.window.Event('input', { bubbles: true }));
-  assert.equal(doc.querySelector('[data-quote-id]').dataset.quoteId, 'quote-old');
+  assert.equal(doc.querySelector('[data-quote-list] [data-quote-id]').dataset.quoteId, 'quote-old');
 });
 
 test('client sees shared attachments only after acceptance', async () => {
