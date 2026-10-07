@@ -191,11 +191,10 @@ export function initQuotePage(
       try {
         replaceCurrent(await request(`/api/quotes/${current.id}/items/${item.id}`, {
           method: 'PUT', headers: { 'content-type': 'application/json' },
-          body: JSON.stringify({
-            productId: item.productId, materialId: item.materialId, sizeId: item.sizeId,
-            quantityId: item.quantityId, extraIds: item.extras.map((extra) => extra.id),
-            observation: input.value.trim(),
-          }),
+          body: JSON.stringify(item.isOffering
+            ? { offeringId: item.offeringId, quantity: item.quantityValue, observation: input.value.trim() }
+            : { productId: item.productId, materialId: item.materialId, sizeId: item.sizeId,
+              quantityId: item.quantityId, extraIds: item.extras.map((extra) => extra.id), observation: input.value.trim() }),
         }));
       } catch (error) {
         pageStatus.textContent = error.message;
@@ -230,7 +229,9 @@ export function initQuotePage(
       const title = documentRoot.createElement('h4');
       title.textContent = quoteItem.productLabel;
       const description = documentRoot.createElement('p');
-      description.textContent = [quoteItem.materialLabel, quoteItem.sizeLabel, quoteItem.quantityLabel].join(' · ');
+      description.textContent = quoteItem.isOffering
+        ? `${quoteItem.categoryLabel} · ${quoteItem.quantityValue} ${quoteItem.unit} · ${money(quoteItem.unitPrice)} por ${quoteItem.unit}`
+        : [quoteItem.materialLabel, quoteItem.sizeLabel, quoteItem.quantityLabel].join(' · ');
       const subtotal = documentRoot.createElement('p');
       subtotal.textContent = quoteItem.requiresEvaluation ? 'Requiere evaluación' : money(quoteItem.estimatedSubtotal);
       article.append(title, description, subtotal);
