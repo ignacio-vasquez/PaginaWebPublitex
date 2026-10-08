@@ -74,7 +74,7 @@ test('accepts each matching attachment kind', async () => fixture(async ({ servi
     const saved = await service.upload('quote-1', kind, { user: { id: 'boss', role: 'jefe' } }, files[kind]);
     assert.equal(saved.kind, kind);
     assert.equal(saved.uploadedAt, 500);
-    assert.equal(saved.downloadUrl, `/api/quotes/quote-1/attachments/${kind}`);
+      assert.equal(saved.downloadUrl, `/api/quotes/quote-1/attachments/${kind}/${saved.id}`);
   }
 }));
 
@@ -86,11 +86,25 @@ test('rejects mismatched extension and signature, empty and oversized files', as
   await assert.rejects(service.upload('quote-1', 'preview', boss, { originalname: 'large.jpg', buffer: Buffer.alloc(10485761) }), { code: 'INVALID_ATTACHMENT' });
 }));
 
-test('replacing an attachment preserves other kinds', async () => fixture(async ({ service }) => {
+test('adding an attachment preserves previous files and other kinds', async () => fixture(async ({ service }) => {
   const boss = { user: { id: 'boss', role: 'jefe' } };
   for (const kind of Object.keys(files)) await service.upload('quote-1', kind, boss, files[kind]);
   await service.upload('quote-1', 'preview', boss, { ...files.preview, originalname: 'new.jpg' });
-  assert.deepEqual((await service.list('quote-1', boss)).map((file) => file.filename).sort(), ['final.jpg', 'new.jpg', 'presupuesto.xlsx', 'respaldo.pdf']);
+  assert.deepEqual((await service.list('quote-1', boss)).map((file) => file.filename).sort(), ['final.jpg', 'montaje.jpg', 'new.jpg', 'presupuesto.xlsx', 'respaldo.pdf']);
+}));
+
+test('same-name invoices have independent IDs and downloads', async () => fixture(async ({ service }) => {
+  const context = { user: { id: 'boss', role: 'jefe' } };
+  const first = await service.upload('quote-1', 'invoice_backup', context, files.invoice_backup);
+  const secondFile = { ...files.invoice_backup, buffer: Buffer.from('%PDF-1.7\nsegunda factura') };
+  const second = await service.upload('quote-1', 'invoice_backup', context, secondFile);
+  assert.ok(first.id);
+  assert.notEqual(first.id, second.id);
+  assert.equal((await service.list('quote-1', context)).length, 2);
+  assert.deepEqual((await service.download('quote-1', 'invoice_backup', context, first.id)).content, files.invoice_backup.buffer);
+  assert.deepEqual((await service.download('quote-1', 'invoice_backup', context, second.id)).content, secondFile.buffer);
+  await assert.rejects(service.download('quote-1', 'preview', context, first.id), { code: 'NOT_FOUND' });
+  await assert.rejects(service.download('quote-1', 'invoice_backup', context, 'missing'), { code: 'NOT_FOUND' });
 }));
 
 test('customer attachment access is limited to owned quotes', async () => fixture(async ({ service, database, quotes }) => {
@@ -158,6 +172,6 @@ test('worker can read accepted attachments', async () => fixture(async ({ servic
 test('metadata never contains BLOB content', async () => fixture(async ({ service }) => {
   await service.upload('quote-1', 'invoice_backup', { user: { id: 'boss', role: 'jefe' } }, files.invoice_backup);
   const metadata = (await service.list('quote-1', { user: { id: 'boss', role: 'jefe' } }))[0];
-  assert.deepEqual(Object.keys(metadata).sort(), ['downloadUrl', 'filename', 'kind', 'mediaType', 'uploadedAt']);
+  assert.deepEqual(Object.keys(metadata).sort(), ['downloadUrl', 'filename', 'id', 'kind', 'mediaType', 'uploadedAt']);
   assert.equal(Object.hasOwn(metadata, 'content'), false);
 }));

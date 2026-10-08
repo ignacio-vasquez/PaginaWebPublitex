@@ -122,38 +122,65 @@ export function initInvoiceArchive(documentRoot = document, api = globalThis.fet
       links.append(item);
     }
     if (!files.length) links.append(node('li', 'Aún no hay archivos.'));
+    links.remove();
     for (const [kind, label, accept] of workAttachments) {
       const form = node('form');
       form.dataset.invoiceAttachmentUpload = kind;
       const picker = node('input');
       picker.type = 'file';
+      picker.hidden = true;
       picker.accept = accept;
-      picker.required = true;
+      picker.multiple = true;
       picker.setAttribute('aria-label', `${label} (${accept})`);
       const pickerLabel = node('label', `${label} (${accept}): `);
-      pickerLabel.append(picker);
       const submit = node('button', `Cargar ${label.toLocaleLowerCase('es')}`);
-      submit.type = 'submit';
+      submit.type = 'button';
+      submit.addEventListener('click', () => picker.click());
       const feedback = node('span');
       feedback.setAttribute('role', 'status');
-      form.append(pickerLabel, submit, feedback);
-      form.addEventListener('submit', async event => {
-        event.preventDefault();
-        if (!picker.files?.[0]) { feedback.textContent = 'Selecciona un archivo.'; return; }
-        const body = new (documentRoot.defaultView?.FormData || globalThis.FormData)();
-        body.append('file', picker.files[0]);
-        submit.disabled = true;
+      const current = files.filter(file => file.kind === kind);
+      const fileBox = node('div');
+      fileBox.className = 'attachment-current-file';
+      if (current.length) {
+        const fileList = node('ul');
+        for (const file of current) {
+          const download = node('a', file.filename);
+          download.href = file.downloadUrl;
+          download.download = file.filename;
+          const item = node('li');
+          item.append(download);
+          fileList.append(item);
+        }
+        fileBox.append(fileList);
+      } else fileBox.textContent = 'Aún no hay un archivo cargado.';
+      form.append(pickerLabel, fileBox, picker, submit, feedback);
+      form.addEventListener('submit', event => event.preventDefault());
+      picker.addEventListener('change', async () => {
+        if (!picker.files?.[0]) return;
+        const selected = [...picker.files];
+        const buttons = [...area.querySelectorAll('button')];
+        buttons.forEach(button => { button.disabled = true; });
         feedback.textContent = 'Cargando…';
+        let saved = 0;
+        const errors = [];
         try {
-          const response = await api(`/api/quotes/${encodeURIComponent(quote.id)}/attachments/${kind}`, {
-            method: 'PUT', credentials: 'same-origin', body,
-          });
-          const result = await response.json();
-          if (!response.ok) throw new Error(result.error || 'No pudimos guardar el archivo.');
-          feedback.textContent = 'Archivo guardado.';
+          for (const file of selected) {
+            const body = new (documentRoot.defaultView?.FormData || globalThis.FormData)();
+            body.append('file', file);
+            try {
+              const response = await api(`/api/quotes/${encodeURIComponent(quote.id)}/attachments/${kind}`, {
+                method: 'PUT', credentials: 'same-origin', body,
+              });
+              const result = await response.json();
+              if (!response.ok) throw new Error(result.error || 'No pudimos guardar el archivo.');
+              saved++;
+            } catch (error) { errors.push(`${file.name}: ${error.message || 'No pudimos conectar.'}`); }
+          }
           await renderWorkAttachments(quote, area);
+          const resultStatus = area.querySelector(`[data-invoice-attachment-upload="${kind}"] [role="status"]`);
+          if (resultStatus) resultStatus.textContent = `${saved} archivo(s) agregado(s). ${errors.join(' ')}`;
         } catch (error) { feedback.textContent = error.message || 'No pudimos conectar.'; }
-        finally { submit.disabled = false; }
+        finally { buttons.forEach(button => { button.disabled = false; }); picker.value = ''; }
       });
       area.append(form);
     }

@@ -151,14 +151,50 @@ test('jefe can replace each of four optional work attachments', async () => {
   for (const [kind, filename] of [['budget', 'plan.xlsx'], ['invoice_backup', 'respaldo.pdf'], ['preview', 'montaje.jpg'], ['completion', 'final.jpg']]) {
     const form = doc.querySelector(`[data-attachment-upload="${kind}"]`);
     const picker = form.querySelector('input[type="file"]');
+    assert.equal(picker.hidden, true);
+    assert.equal(form.querySelector('button').type, 'button');
     Object.defineProperty(picker, 'files', { configurable: true, value: [new doc.defaultView.File(['file'], filename)] });
-    form.dispatchEvent(new doc.defaultView.Event('submit', { bubbles: true, cancelable: true }));
+    picker.dispatchEvent(new doc.defaultView.Event('change', { bubbles: true }));
     await tick(); await tick();
   }
   assert.deepEqual(calls.filter((url) => url.includes('/attachments/')).sort(), [
     '/api/quotes/q1/attachments/budget', '/api/quotes/q1/attachments/completion',
     '/api/quotes/q1/attachments/invoice_backup', '/api/quotes/q1/attachments/preview',
   ]);
+});
+
+test('multiple file selection adds successful files and reports partial failures', async () => {
+  const { initWorkPage } = await import('../js/gestion.js');
+  const doc = createDom(readFileSync('gestion.html', 'utf8')).window.document;
+  const quote = { id: 'q1', code: 'COT-1', status: 'accepted', items: [], events: [] };
+  const files = [{ kind: 'invoice_backup', filename: 'old.pdf', downloadUrl: '/old' }];
+  const uploaded = [];
+  initWorkPage(doc, async (url, options = {}) => {
+    if (url === '/api/auth/session') return new Response(JSON.stringify({ authenticated: true, user: { role: 'jefe' } }));
+    if (url === '/api/work/quotes') return new Response(JSON.stringify([quote]));
+    if (url.endsWith('/attachments')) return new Response(JSON.stringify(files));
+    if (options.method === 'PUT') {
+      const file = options.body.get('file');
+      uploaded.push(file.name);
+      if (file.name === 'bad.pdf') return new Response(JSON.stringify({ error: 'Archivo inválido' }), { status: 400 });
+      files.push({ kind: 'invoice_backup', filename: file.name, downloadUrl: '/' + file.name });
+      return new Response(JSON.stringify(files.at(-1)));
+    }
+    return new Response(JSON.stringify([]));
+  });
+  await tick(); await tick();
+  const selector = '[data-attachment-upload="invoice_backup"]';
+  const picker = doc.querySelector(`${selector} input[type=file]`);
+  assert.equal(picker.multiple, true);
+  picker.dispatchEvent(new doc.defaultView.Event('change'));
+  assert.equal(uploaded.length, 0);
+  Object.defineProperty(picker, 'files', { value: ['first.pdf', 'bad.pdf', 'second.pdf'].map(name => new doc.defaultView.File(['pdf'], name)) });
+  picker.dispatchEvent(new doc.defaultView.Event('change'));
+  for (let i = 0; i < 8; i++) await tick();
+  assert.deepEqual(uploaded, ['first.pdf', 'bad.pdf', 'second.pdf']);
+  assert.deepEqual([...doc.querySelectorAll(`${selector} .attachment-current-file a`)].map(a => a.textContent), ['old.pdf', 'first.pdf', 'second.pdf']);
+  assert.match(doc.querySelector(`${selector} [role=status]`).textContent, /2 archivo.*bad.pdf.*Archivo inválido/);
+  assert.equal(doc.querySelector(`${selector} button`).disabled, false);
 });
 
 test('worker sees downloads but no upload controls for accepted work', async () => {

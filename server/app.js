@@ -19,6 +19,7 @@ const { notFoundApi, handleError } = require('./http/error-handler');
 function createApp(options = {}) {
   const app = express();
   app.disable('x-powered-by');
+  if ((options.env || process.env).PUBLITEX_TRUST_PROXY === '1') app.set('trust proxy', 1);
   app.set('logger', options.logger || console);
   if (options.ready) {
     app.use((_request, _response, next) => {

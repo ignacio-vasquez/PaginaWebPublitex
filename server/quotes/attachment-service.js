@@ -1,4 +1,5 @@
 const { inspectAttachment } = require('./attachment-document');
+const { randomUUID } = require('node:crypto');
 
 function failure(code, message = 'Cotización no encontrada.') {
   return Object.assign(new Error(message), { code });
@@ -9,10 +10,12 @@ function createQuoteAttachmentService({ database, quotes, now = Date.now }) {
   const selectQuote = database.prepare(`SELECT q.user_id, q.status AS quote_status,
     COALESCE(w.status, q.status) AS status
     FROM quotes q LEFT JOIN quote_workflow w ON w.quote_id = q.id WHERE q.id = ?`);
-  const selectAttachments = database.prepare(`SELECT kind, filename, media_type, uploaded_at
-    FROM quote_attachments WHERE quote_id = ? ORDER BY kind`);
+  const selectAttachments = database.prepare(`SELECT id, kind, filename, media_type, uploaded_at
+    FROM quote_attachments WHERE quote_id = ? ORDER BY kind, uploaded_at, rowid`);
   const selectAttachment = database.prepare(`SELECT filename, media_type, content
-    FROM quote_attachments WHERE quote_id = ? AND kind = ?`);
+    FROM quote_attachments WHERE quote_id = ? AND kind = ? ORDER BY uploaded_at DESC, rowid DESC LIMIT 1`);
+  const selectAttachmentById = database.prepare(`SELECT filename, media_type, content
+    FROM quote_attachments WHERE quote_id = ? AND kind = ? AND id = ?`);
 
   function access(id, context, kind) {
     const user = context?.user;
@@ -35,11 +38,12 @@ function createQuoteAttachmentService({ database, quotes, now = Date.now }) {
 
   function metadata(id, row) {
     return {
+      id: row.id,
       kind: row.kind,
       filename: row.filename,
       mediaType: row.media_type,
       uploadedAt: row.uploaded_at,
-      downloadUrl: `/api/quotes/${encodeURIComponent(id)}/attachments/${encodeURIComponent(row.kind)}`,
+      downloadUrl: `/api/quotes/${encodeURIComponent(id)}/attachments/${encodeURIComponent(row.kind)}/${encodeURIComponent(row.id)}`,
     };
   }
 
@@ -56,24 +60,24 @@ function createQuoteAttachmentService({ database, quotes, now = Date.now }) {
       if (!manager) throw failure('FORBIDDEN', 'Solo el jefe puede cargar archivos.');
       const document = inspectAttachment(kind, file);
       const timestamp = now();
+      const attachmentId = randomUUID();
       database.exec('BEGIN IMMEDIATE');
       try {
         access(id, context, kind);
         database.prepare(`INSERT INTO quote_attachments
-          (quote_id,kind,filename,media_type,content,sha256,uploaded_at,uploaded_by)
-          VALUES (?,?,?,?,?,?,?,?)
-          ON CONFLICT(quote_id,kind) DO UPDATE SET filename=excluded.filename,media_type=excluded.media_type,
-            content=excluded.content,sha256=excluded.sha256,uploaded_at=excluded.uploaded_at,uploaded_by=excluded.uploaded_by`)
-          .run(id, kind, document.filename, document.mediaType, document.content, document.sha256, timestamp,
+          (id,quote_id,kind,filename,media_type,content,sha256,uploaded_at,uploaded_by)
+          VALUES (?,?,?,?,?,?,?,?,?)`)
+          .run(attachmentId, id, kind, document.filename, document.mediaType, document.content, document.sha256, timestamp,
             context.realUser?.id || context.user.id);
         database.exec('COMMIT');
       } catch (error) { database.exec('ROLLBACK'); throw error; }
-      return metadata(id, { kind, filename: document.filename, media_type: document.mediaType, uploaded_at: timestamp });
+      return metadata(id, { id: attachmentId, kind, filename: document.filename, media_type: document.mediaType, uploaded_at: timestamp });
     },
 
-    async download(id, kind, context) {
+    async download(id, kind, context, attachmentId) {
       access(id, context, kind);
-      const row = selectAttachment.get(id, kind);
+      const row = attachmentId === undefined ? selectAttachment.get(id, kind)
+        : selectAttachmentById.get(id, kind, attachmentId);
       if (!row) throw failure('NOT_FOUND');
       return { filename: row.filename, media_type: row.media_type, content: Buffer.from(row.content) };
     },

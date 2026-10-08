@@ -35,6 +35,28 @@ function pdfForm(filename = 'presupuesto.pdf', bytes = Buffer.from('%PDF-1.7\nfi
   return form;
 }
 
+test('multiple invoice uploads retain independent downloads and quote permissions', async () => fixture(async ({ base, cookies, client }) => {
+  const upload = async bytes => {
+    const response = await fetch(`${base}/api/quotes/q/attachments/invoice_backup`, {
+      method: 'PUT', headers: { cookie: cookies.jefe }, body: pdfForm('same.pdf', Buffer.from(bytes)),
+    });
+    assert.equal(response.status, 200);
+    return response.json();
+  };
+  const first = await upload('%PDF-1.7\nfirst');
+  const second = await upload('%PDF-1.7\nsecond');
+  assert.notEqual(first.downloadUrl, second.downloadUrl);
+  for (const [file, bytes] of [[first, '%PDF-1.7\nfirst'], [second, '%PDF-1.7\nsecond']]) {
+    const response = await fetch(base + file.downloadUrl, { headers: { cookie: cookies[client.id] } });
+    assert.equal(response.status, 200);
+    assert.equal(await response.text(), bytes);
+    const mismatch = await fetch(base + file.downloadUrl.replace('/quotes/q/', '/quotes/q-other/'), { headers: { cookie: cookies.jefe } });
+    assert.equal(mismatch.status, 404);
+  }
+  const list = await fetch(`${base}/api/quotes/q/attachments`, { headers: { cookie: cookies.jefe } });
+  assert.equal((await list.json()).length, 2);
+}));
+
 test('jefe uploads and downloads an attachment', async () => fixture(async ({ base, cookies }) => {
   const path = '/api/quotes/q/attachments/invoice_backup';
   const uploaded = await fetch(base + path, { method: 'PUT', headers: { cookie: cookies.jefe }, body: pdfForm('respaldo.pdf') });

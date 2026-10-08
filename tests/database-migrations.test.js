@@ -7,6 +7,29 @@ const { openDatabase } = require('../server/database/database');
 const { migrateDatabase } = require('../server/database/migrate');
 const { withTestDatabase } = require('./database-helper');
 
+test('multiple-attachment migration preserves existing bytes and attribution', () => {
+  const { DatabaseSync } = require('node:sqlite');
+  const database = new DatabaseSync(':memory:');
+  try {
+    database.exec('PRAGMA foreign_keys=ON');
+    const directory = path.join(__dirname, '../server/database/migrations');
+    for (const filename of fs.readdirSync(directory).filter(name => /^\d{3}_/.test(name) && name < '015_').sort()) {
+      database.exec(fs.readFileSync(path.join(directory, filename), 'utf8'));
+    }
+    database.exec("INSERT INTO users (id,name,email,password_hash,role,created_at,updated_at) VALUES ('u','Ana','migration@example.com','hash','jefe',0,0)");
+    database.exec("INSERT INTO quotes (id,user_id,created_at,updated_at) VALUES ('q','u',0,0)");
+    database.prepare(`INSERT INTO quote_attachments (quote_id,kind,filename,media_type,content,sha256,uploaded_at,uploaded_by)
+      VALUES ('q','invoice_backup','original.pdf','application/pdf',?,'original-hash',42,'u')`).run(Buffer.from('%PDF-original'));
+    const before = { ...database.prepare('SELECT * FROM quote_attachments').get() };
+    database.exec(fs.readFileSync(path.join(directory, '015_multiple_quote_attachments.sql'), 'utf8'));
+    const { id, ...after } = database.prepare('SELECT * FROM quote_attachments').get();
+    assert.ok(id);
+    assert.deepEqual(after, before);
+    assert.equal(database.prepare('PRAGMA foreign_key_check').all().length, 0);
+    assert.throws(() => database.prepare('INSERT INTO quote_attachments SELECT * FROM quote_attachments').run());
+  } finally { database.close(); }
+});
+
 test('configura SQLite y aplica cada migración una sola vez', async () => {
   await withTestDatabase(async ({ database, filename }) => {
     assert.equal(database.prepare('PRAGMA foreign_keys').get().foreign_keys, 1);
@@ -17,7 +40,7 @@ test('configura SQLite y aplica cada migración una sola vez', async () => {
     const reopened = openDatabase({ filename });
     assert.deepEqual(
       reopened.prepare('SELECT version FROM schema_migrations ORDER BY version').all().map((row) => ({ ...row })),
-      [{ version: '001_auth.sql' }, { version: '002_catalog_quotes.sql' }, { version: '003_quote_codes.sql' }, { version: '004_simulation.sql' }, { version: '005_quote_workflow.sql' }, { version: '006_invoicing.sql' }, { version: '007_shared_work.sql' }, { version: '008_simulation_real_identity.sql' }, { version: '009_actor_target.sql' }, { version: '010_invoice_documents.sql' }, { version: '011_quote_work_names_attachments.sql' }, { version: '012_user_role_events.sql' }, { version: '013_catalog_offerings.sql' }, { version: '014_quote_offering_snapshots.sql' }],
+      [{ version: '001_auth.sql' }, { version: '002_catalog_quotes.sql' }, { version: '003_quote_codes.sql' }, { version: '004_simulation.sql' }, { version: '005_quote_workflow.sql' }, { version: '006_invoicing.sql' }, { version: '007_shared_work.sql' }, { version: '008_simulation_real_identity.sql' }, { version: '009_actor_target.sql' }, { version: '010_invoice_documents.sql' }, { version: '011_quote_work_names_attachments.sql' }, { version: '012_user_role_events.sql' }, { version: '013_catalog_offerings.sql' }, { version: '014_quote_offering_snapshots.sql' }, { version: '015_multiple_quote_attachments.sql' }],
     );
     reopened.close();
   });
@@ -34,22 +57,22 @@ test('migration adds names and constrained attachment records', async () => {
     assert.equal(database.prepare('SELECT work_name FROM quotes WHERE id = ?').get('old-quote').work_name, '');
     for (const kind of ['budget', 'invoice_backup', 'preview', 'completion']) {
       database.prepare(`INSERT INTO quote_attachments
-        (quote_id, kind, filename, media_type, content, sha256, uploaded_at, uploaded_by)
-        VALUES ('old-quote', ?, 'file', 'application/octet-stream', ?, 'hash-' || ?, 0, 'old-customer')`)
+        (id, quote_id, kind, filename, media_type, content, sha256, uploaded_at, uploaded_by)
+        VALUES (lower(hex(randomblob(16))), 'old-quote', ?, 'file', 'application/octet-stream', ?, 'hash-' || ?, 0, 'old-customer')`)
         .run(kind, Buffer.from([1]), kind);
     }
     assert.throws(() => database.prepare(`INSERT INTO quote_attachments
-      (quote_id, kind, filename, media_type, content, sha256, uploaded_at, uploaded_by)
-      VALUES ('old-quote', 'other', 'file', 'application/octet-stream', X'01', 'bad-kind', 0, 'old-customer')`).run());
+      (id, quote_id, kind, filename, media_type, content, sha256, uploaded_at, uploaded_by)
+      VALUES (lower(hex(randomblob(16))), 'old-quote', 'other', 'file', 'application/octet-stream', X'01', 'bad-kind', 0, 'old-customer')`).run());
+    assert.doesNotThrow(() => database.prepare(`INSERT INTO quote_attachments
+      (id, quote_id, kind, filename, media_type, content, sha256, uploaded_at, uploaded_by)
+      VALUES (lower(hex(randomblob(16))), 'old-quote', 'budget', 'file', 'application/octet-stream', X'01', 'duplicate', 0, 'old-customer')`).run());
     assert.throws(() => database.prepare(`INSERT INTO quote_attachments
-      (quote_id, kind, filename, media_type, content, sha256, uploaded_at, uploaded_by)
-      VALUES ('old-quote', 'budget', 'file', 'application/octet-stream', X'01', 'duplicate', 0, 'old-customer')`).run());
+      (id, quote_id, kind, filename, media_type, content, sha256, uploaded_at, uploaded_by)
+      VALUES (lower(hex(randomblob(16))), 'old-quote', 'completion', 'file', 'image/jpeg', X'', 'empty', 0, 'old-customer')`).run());
     assert.throws(() => database.prepare(`INSERT INTO quote_attachments
-      (quote_id, kind, filename, media_type, content, sha256, uploaded_at, uploaded_by)
-      VALUES ('old-quote', 'completion', 'file', 'image/jpeg', X'', 'empty', 0, 'old-customer')`).run());
-    assert.throws(() => database.prepare(`INSERT INTO quote_attachments
-      (quote_id, kind, filename, media_type, content, sha256, uploaded_at, uploaded_by)
-      VALUES ('old-quote', 'completion', 'file', 'image/jpeg', zeroblob(10485761), 'large', 0, 'old-customer')`).run());
+      (id, quote_id, kind, filename, media_type, content, sha256, uploaded_at, uploaded_by)
+      VALUES (lower(hex(randomblob(16))), 'old-quote', 'completion', 'file', 'image/jpeg', zeroblob(10485761), 'large', 0, 'old-customer')`).run());
   });
 });
 
@@ -294,7 +317,7 @@ test('asigna códigos a cotizaciones existentes sin modificar sus datos al migra
     database.exec("INSERT INTO users (id, name, email, password_hash, role, created_at, updated_at) VALUES ('u', 'Ana', 'ana@example.com', 'hash', 'cliente', 0, 0)");
     database.exec("INSERT INTO quotes (id, user_id, status, phone, created_at, updated_at, submitted_at) VALUES ('old', 'u', 'submitted', '912345678', 1, 3, 3), ('new', 'u', 'draft', NULL, 2, 2, NULL)");
     const before = database.prepare('SELECT * FROM quotes ORDER BY id').all().map((row) => ({ ...row }));
-    assert.deepEqual(migrateDatabase({ database }), ['003_quote_codes.sql', '004_simulation.sql', '005_quote_workflow.sql', '006_invoicing.sql', '007_shared_work.sql', '008_simulation_real_identity.sql', '009_actor_target.sql', '010_invoice_documents.sql', '011_quote_work_names_attachments.sql', '012_user_role_events.sql', '013_catalog_offerings.sql', '014_quote_offering_snapshots.sql']);
+    assert.deepEqual(migrateDatabase({ database }), ['003_quote_codes.sql', '004_simulation.sql', '005_quote_workflow.sql', '006_invoicing.sql', '007_shared_work.sql', '008_simulation_real_identity.sql', '009_actor_target.sql', '010_invoice_documents.sql', '011_quote_work_names_attachments.sql', '012_user_role_events.sql', '013_catalog_offerings.sql', '014_quote_offering_snapshots.sql', '015_multiple_quote_attachments.sql']);
     const after = database.prepare('SELECT * FROM quotes ORDER BY id').all().map((row) => ({ ...row }));
     assert.deepEqual(after.map(({ work_name, ...row }) => row), before);
     assert.deepEqual(after.map((row) => row.work_name), ['', '']);

@@ -48,10 +48,13 @@ test('las acciones cambian entre simulación pública y cotización con sesión'
   const { initSessionNavigation } = await import('../js/sesion-navegacion.js');
   for (const authenticated of [false, true]) {
     const dom = createDom(require('node:fs').readFileSync(require('node:path').join(__dirname, '..', 'index.html'), 'utf8'));
+    const action = dom.window.document.createElement('a');
+    action.setAttribute('data-project-link', '');
+    dom.window.document.body.append(action);
     initSessionNavigation(dom.window.document, async () => new Response(JSON.stringify({ authenticated })));
     await new Promise(setImmediate);
     const actions = [...dom.window.document.querySelectorAll('[data-project-link]')];
-  assert.ok(actions.length >= 1);
+    assert.ok(actions.length >= 1);
     for (const action of actions) {
       assert.equal(action.textContent, authenticated ? 'Enviar presupuesto' : 'Simular proyecto');
       assert.equal(action.getAttribute('href'), authenticated ? 'presupuesto.html?new=1' : 'index.html#cotizacion');

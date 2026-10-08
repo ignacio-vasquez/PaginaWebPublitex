@@ -50,6 +50,10 @@ function createQuoteAttachmentRouter({ attachmentService, authService }) {
     const file = await attachmentService.download(request.params.id, request.params.kind, context(request));
     response.attachment(file.filename).type(file.media_type).send(Buffer.from(file.content));
   }));
+  router.get('/:id/attachments/:kind/:attachmentId', action(async (request, response) => {
+    const file = await attachmentService.download(request.params.id, request.params.kind, context(request), request.params.attachmentId);
+    response.attachment(file.filename).type(file.media_type).send(Buffer.from(file.content));
+  }));
   router.put('/:id/attachments/:kind', parseUpload, action(async (request, response) => {
     response.json(await attachmentService.upload(request.params.id, request.params.kind, context(request), request.file));
   }));

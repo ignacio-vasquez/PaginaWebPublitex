@@ -1,0 +1,39 @@
+services:
+  - type: web
+    name: publitex
+    runtime: node
+    plan: free
+    branch: main
+    autoDeployTrigger: commit
+    buildCommand: npm ci --omit=dev
+    startCommand: npm start
+    healthCheckPath: /
+    envVars:
+      - key: NODE_VERSION
+        value: 22.22.1
+      - key: NODE_ENV
+        value: production
+      - key: HOST
+        value: 0.0.0.0
+      - key: PUBLITEX_DB_PATH
+        value: /tmp/publitex/publitex.sqlite
+      - key: PUBLITEX_TRUST_PROXY
+        value: "1"
+      - key: PUBLITEX_BOSS_NAME
+        value: Marcelo Velis
+      - key: PUBLITEX_BOSS_EMAIL
+        sync: false
+      - key: PUBLITEX_BOSS_PASSWORD
+        sync: false
+      - key: PUBLITEX_WORKER_NAME
+        value: Marcos Velis
+      - key: PUBLITEX_WORKER_EMAIL
+        sync: false
+      - key: PUBLITEX_WORKER_PASSWORD
+        sync: false
+      - key: PUBLITEX_SUPERADMIN_NAME
+        value: Ignacio
+      - key: PUBLITEX_SUPERADMIN_EMAIL
+        sync: false
+      - key: PUBLITEX_SUPERADMIN_PASSWORD
+        sync: false

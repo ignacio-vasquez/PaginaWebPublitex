@@ -7,6 +7,10 @@ const BOOTSTRAP_GROUPS = [
     prefix: 'PUBLITEX_SUPERADMIN',
     role: 'superadmin',
   },
+  {
+    prefix: 'PUBLITEX_WORKER',
+    role: 'trabajador',
+  },
 ];
 
 function isPresent(value) {

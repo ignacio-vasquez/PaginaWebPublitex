@@ -98,7 +98,8 @@ test('delivered archive keeps work attachments available to jefe after delivery'
   assert.equal(doc.querySelector('[data-invoice-attachments] a').getAttribute('href'), '/api/quotes/delivered/attachments/completion');
   const picker = doc.querySelector('[data-invoice-attachment-upload="completion"] input[type=file]');
   Object.defineProperty(picker, 'files', { configurable: true, value: [new doc.defaultView.File(['jpg'], 'final.jpg')] });
-  doc.querySelector('[data-invoice-attachment-upload="completion"]').dispatchEvent(new doc.defaultView.Event('submit', { bubbles: true, cancelable: true }));
+  assert.equal(picker.hidden, true);
+  picker.dispatchEvent(new doc.defaultView.Event('change', { bubbles: true }));
   await tick(); await tick();
   assert.ok(calls.some(([url, options]) => url === '/api/quotes/delivered/attachments/completion' && options.method === 'PUT'));
 });

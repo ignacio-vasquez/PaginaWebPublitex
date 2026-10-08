@@ -17,7 +17,7 @@ test('sirve la página pública existente', async () => {
   await withServer(createApp(), async (baseUrl) => {
     const response = await fetch(`${baseUrl}/`);
     assert.equal(response.status, 200);
-    assert.match(await response.text(), /PUBLITEXWEB/i);
+    assert.match(await response.text(), /<title>Publitex \| Publicidad visual<\/title>/i);
   });
 });
 

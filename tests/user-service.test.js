@@ -181,11 +181,13 @@ test('bootstrap crea jefe y superadmin con grupos completos', async () => {
   await bootstrapUsers({ userService, env: {
     PUBLITEX_BOSS_NAME: '  Jefa  ', PUBLITEX_BOSS_EMAIL: ' JEFA@EXAMPLE.COM ', PUBLITEX_BOSS_PASSWORD: 'secreto1',
     PUBLITEX_SUPERADMIN_NAME: ' Admin ', PUBLITEX_SUPERADMIN_EMAIL: ' ADMIN@EXAMPLE.COM ', PUBLITEX_SUPERADMIN_PASSWORD: 'secreto2',
+    PUBLITEX_WORKER_NAME: 'Marcos Velis', PUBLITEX_WORKER_EMAIL: 'marcos@example.com', PUBLITEX_WORKER_PASSWORD: 'secreto3',
   } });
 
   assert.deepEqual(calls, [
     { name: '  Jefa  ', email: ' JEFA@EXAMPLE.COM ', password: 'secreto1', role: 'jefe' },
     { name: ' Admin ', email: ' ADMIN@EXAMPLE.COM ', password: 'secreto2', role: 'superadmin' },
+    { name: 'Marcos Velis', email: 'marcos@example.com', password: 'secreto3', role: 'trabajador' },
   ]);
 });
 

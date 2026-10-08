@@ -27,6 +27,42 @@ function isolatedStorage() {
   };
 }
 
+test('configura el proxy únicamente cuando el hosting lo solicita', async () => {
+  for (const [value, expected] of [[undefined, false], ['0', false], ['1', 1]]) {
+    const runtime = createRuntime({ ...isolatedStorage(), env: { PUBLITEX_TRUST_PROXY: value }, bootstrapUsers: noOpBootstrap });
+    await runtime.ready;
+    assert.equal(runtime.app.get('trust proxy'), expected);
+  }
+});
+
+test('las tres cuentas se recrean en una base vacía y no se duplican al reiniciar', async () => {
+  const { withTestDatabase } = require('./database-helper');
+  const env = {
+    PUBLITEX_BOSS_NAME: 'Marcelo Velis', PUBLITEX_BOSS_EMAIL: 'marcelo@example.com', PUBLITEX_BOSS_PASSWORD: 'jefe-prueba',
+    PUBLITEX_WORKER_NAME: 'Marcos Velis', PUBLITEX_WORKER_EMAIL: 'marcos@example.com', PUBLITEX_WORKER_PASSWORD: 'trabajador-prueba',
+    PUBLITEX_SUPERADMIN_NAME: 'Ignacio', PUBLITEX_SUPERADMIN_EMAIL: 'ignacio@example.com', PUBLITEX_SUPERADMIN_PASSWORD: 'admin-prueba',
+  };
+  for (let freshDatabase = 0; freshDatabase < 2; freshDatabase++) {
+    await withTestDatabase(async ({ database }) => {
+      for (let restart = 0; restart < 2; restart++) {
+        const runtime = createRuntime({ database, env, hashPassword: value => `test:${value}`, verifyPassword: (value, hash) => hash === `test:${value}` });
+        await runtime.ready;
+        for (const [prefix, role] of [['BOSS', 'jefe'], ['WORKER', 'trabajador'], ['SUPERADMIN', 'superadmin']]) {
+          const user = await runtime.userService.authenticate({ email: env[`PUBLITEX_${prefix}_EMAIL`], password: env[`PUBLITEX_${prefix}_PASSWORD`] });
+          assert.equal(user.role, role);
+        }
+        assert.equal(database.prepare('SELECT COUNT(*) AS count FROM users').get().count, 3);
+        runtime.close();
+      }
+    });
+  }
+});
+
+test('rechaza una cuenta inicial de trabajador incompleta', async () => {
+  const runtime = createRuntime({ ...isolatedStorage(), env: { PUBLITEX_WORKER_NAME: 'Marcos Velis', PUBLITEX_WORKER_EMAIL: 'marcos@example.com' } });
+  await assert.rejects(runtime.ready, { code: 'INCOMPLETE_BOOTSTRAP_CONFIG' });
+});
+
 test('crear el runtime no escucha puertos por sí mismo', async () => {
   const runtime = createRuntime({ ...isolatedStorage(), bootstrapUsers: noOpBootstrap, env: {} });
   await runtime.ready;

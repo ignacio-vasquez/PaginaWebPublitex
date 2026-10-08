@@ -1,5 +1,7 @@
 # Publitexweb
 
+Para publicar la versión de prueba gratuita y enviar las actualizaciones desde GitHub, consulta [la guía de Render](docs/render-gratuito.md). Las bases local y remota son independientes.
+
 Proyecto progresivo para una empresa de publicidad visual y para practicar desarrollo web y bases de datos.
 
 ## Etapa actual: simulador y cotizaciones persistentes
